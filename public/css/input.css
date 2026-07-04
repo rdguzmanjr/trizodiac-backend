@@ -24,8 +24,8 @@
   .waybill-label {
     width: 741px;
     aspect-ratio: 1482 / 1594;
-    background: #ffffff;
-    color: #000000;
+    background: #ffffff !important;
+    color: #000000 !important;
     border: 4px solid #000000;
     border-radius: 18px;
     overflow: hidden;
@@ -35,6 +35,7 @@
 
   .waybill-label * {
     box-sizing: border-box;
+    color: #000000 !important;
   }
 
   .waybill-header {
@@ -166,6 +167,8 @@
     width: 100%;
     height: 100%;
     display: block;
+    max-width: 100%;
+    overflow: hidden;
   }
 
   .waybill-barcode-text {

@@ -20,6 +20,7 @@ const { ensureAuthenticated, ensureAdmin } = require('./middleware/auth');
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
+const assetVersion = process.env.VERCEL_GIT_COMMIT_SHA || process.env.VERCEL_DEPLOYMENT_ID || Date.now().toString(36);
 const cspDirectives = {
   defaultSrc: ["'self'"],
   baseUri: ["'self'"],
@@ -97,6 +98,7 @@ app.use((req, res, next) => {
 
   res.locals.currentUser = req.user || null;
   res.locals.csrfToken = req.session.csrfToken || '';
+  res.locals.assetVersion = assetVersion;
   res.locals.error = req.session.flash ? req.flash('error') : [];
   res.locals.success = req.session.flash ? req.flash('success') : [];
   next();
