@@ -1,4 +1,4 @@
-const { createCanvas, loadImage } = require('@napi-rs/canvas');
+const { createCanvas, GlobalFonts, loadImage } = require('@napi-rs/canvas');
 const bwipjs = require('bwip-js');
 
 const WIDTH = 1482;
@@ -6,6 +6,29 @@ const HEIGHT = 1594;
 const BLACK = '#000000';
 const WHITE = '#ffffff';
 const BARCODE_TYPE = 'code128';
+const LABEL_FONT = 'TrizodiacLabel';
+
+let fontsRegistered = false;
+
+function registerFonts() {
+  if (fontsRegistered) {
+    return;
+  }
+
+  [
+    '@fontsource/roboto/files/roboto-latin-400-normal.woff',
+    '@fontsource/roboto/files/roboto-latin-500-normal.woff',
+    '@fontsource/roboto/files/roboto-latin-700-normal.woff',
+    '@fontsource/roboto/files/roboto-latin-900-normal.woff'
+  ].forEach((fontPath) => {
+    const key = GlobalFonts.registerFromPath(require.resolve(fontPath), LABEL_FONT);
+    if (!key) {
+      throw new Error(`Unable to register label font: ${fontPath}`);
+    }
+  });
+
+  fontsRegistered = true;
+}
 
 function roundedRect(ctx, x, y, width, height, radius) {
   const r = Math.min(radius, width / 2, height / 2);
@@ -36,7 +59,7 @@ function drawLine(ctx, x1, y1, x2, y2, width = 6) {
 }
 
 function setFont(ctx, weight, size) {
-  ctx.font = `${weight} ${size}px Arial, Helvetica, sans-serif`;
+  ctx.font = `${weight} ${size}px ${LABEL_FONT}`;
 }
 
 function drawSpacedText(ctx, text, x, y, letterSpacing) {
@@ -170,6 +193,8 @@ async function barcodeImage(value) {
 }
 
 async function renderOrderLabelPng(order) {
+  registerFonts();
+
   const canvas = createCanvas(WIDTH, HEIGHT);
   const ctx = canvas.getContext('2d');
 
