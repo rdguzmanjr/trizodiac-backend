@@ -1,5 +1,17 @@
+function readInitialOrders() {
+  const dataElement = document.getElementById('orders-data');
+  const rawData = dataElement?.textContent || dataElement?.content?.textContent || '[]';
+
+  try {
+    return JSON.parse(rawData);
+  } catch (error) {
+    console.error('Unable to load initial orders.', error);
+    return [];
+  }
+}
+
 const state = {
-  orders: JSON.parse(document.getElementById('orders-data').textContent || '[]'),
+  orders: readInitialOrders(),
   page: 1,
   pageSize: 10,
   search: '',
