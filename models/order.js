@@ -2,6 +2,7 @@ const bwipjs = require('bwip-js');
 const { supabase } = require('../config/supabase');
 
 const APP_TIME_ZONE = process.env.APP_TIME_ZONE || 'Asia/Manila';
+const BARCODE_TYPE = 'code128';
 
 function getParts(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -67,7 +68,7 @@ function validatePayload(payload) {
 
 function barcodeSvg(value) {
   return bwipjs.toSVG({
-    bcid: 'code128',
+    bcid: BARCODE_TYPE,
     text: value,
     scale: 3,
     height: 18,
