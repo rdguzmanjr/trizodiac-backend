@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <title>Sign in | Trizodiac</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <main class="flex min-h-screen items-center justify-center px-6 py-12">
+      <section class="w-full max-w-md rounded-lg border border-white/10 bg-zinc-900/85 p-8 shadow-2xl shadow-black/40 backdrop-blur">
+        <div class="mb-8 text-center">
+          <p class="text-sm font-medium uppercase tracking-[0.22em] text-emerald-300">Trizodiac</p>
+          <h1 class="mt-4 text-3xl font-semibold tracking-normal text-white">Admin Sign In</h1>
+          <p class="mt-3 text-sm leading-6 text-zinc-400">Use your authorized Google account to continue.</p>
+        </div>
+
+        <% if (error && error.length) { %>
+          <div class="mb-5 rounded-md border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+            <%= error[0] %>
+          </div>
+        <% } %>
+
+        <a
+          href="/auth/google"
+          class="flex w-full items-center justify-center gap-3 rounded-md border border-white/10 bg-white px-4 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2 focus:ring-offset-zinc-950"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#4285F4" d="M21.6 12.23c0-.74-.07-1.45-.19-2.14H12v4.05h5.38a4.6 4.6 0 0 1-1.99 3.02v2.51h3.22c1.89-1.74 2.99-4.3 2.99-7.44Z"/>
+            <path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.61-2.43l-3.22-2.51c-.9.6-2.04.95-3.39.95-2.6 0-4.8-1.75-5.59-4.11H3.09v2.59A9.99 9.99 0 0 0 12 22Z"/>
+            <path fill="#FBBC05" d="M6.41 13.9a6.01 6.01 0 0 1 0-3.8V7.51H3.09a10.01 10.01 0 0 0 0 8.98l3.32-2.59Z"/>
+            <path fill="#EA4335" d="M12 5.99c1.47 0 2.79.51 3.82 1.5l2.86-2.86C16.95 3.02 14.69 2 12 2a9.99 9.99 0 0 0-8.91 5.51l3.32 2.59C7.2 7.74 9.4 5.99 12 5.99Z"/>
+          </svg>
+          Sign in with Google
+        </a>
+      </section>
+    </main>
+  </body>
+</html>

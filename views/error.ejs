@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><%= statusCode %> | Trizodiac</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <main class="flex min-h-screen items-center justify-center px-6">
+      <section class="max-w-md text-center">
+        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-300"><%= statusCode %></p>
+        <h1 class="mt-4 text-3xl font-semibold text-white"><%= message %></h1>
+        <a class="mt-8 inline-flex rounded-md bg-emerald-400 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-emerald-300" href="/">Go back</a>
+      </section>
+    </main>
+  </body>
+</html>

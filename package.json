@@ -1,0 +1,35 @@
+{
+  "name": "trizodiac-backend",
+  "version": "1.0.0",
+  "description": "Production-ready Google OAuth authentication system with Express, Passport, Supabase, and EJS.",
+  "main": "app.js",
+  "type": "commonjs",
+  "scripts": {
+    "build": "npm run build:css",
+    "build:css": "tailwindcss -i ./public/css/input.css -o ./public/css/styles.css --minify",
+    "dev": "NODE_ENV=development nodemon app.js",
+    "start": "node app.js",
+    "check": "node --check app.js && find config controllers middleware models routes -name '*.js' -print0 | xargs -0 -n1 node --check"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.110.0",
+    "connect-flash": "0.1.1",
+    "dotenv": "17.2.3",
+    "ejs": "3.1.10",
+    "express": "5.2.1",
+    "express-session": "1.18.2",
+    "helmet": "8.1.0",
+    "morgan": "1.10.1",
+    "passport": "0.7.0",
+    "passport-google-oauth20": "2.0.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "10.4.23",
+    "nodemon": "3.1.11",
+    "postcss": "8.5.6",
+    "tailwindcss": "3.4.17"
+  }
+}

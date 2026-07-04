@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard | Trizodiac</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body class="bg-zinc-950">
+    <div class="min-h-screen">
+      <header class="border-b border-white/10 bg-zinc-950/80">
+        <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <a href="/dashboard" class="text-lg font-semibold text-white">Trizodiac Admin</a>
+          <nav class="flex items-center gap-2">
+            <a class="rounded-md px-3 py-2 text-sm font-medium text-zinc-300 hover:bg-white/10 hover:text-white" href="/admin">Users</a>
+            <a class="rounded-md px-3 py-2 text-sm font-medium text-zinc-300 hover:bg-white/10 hover:text-white" href="/settings">Settings</a>
+            <form method="post" action="/auth/logout">
+              <button class="rounded-md border border-white/10 px-3 py-2 text-sm font-medium text-zinc-300 hover:bg-white/10 hover:text-white" type="submit">Sign out</button>
+            </form>
+          </nav>
+        </div>
+      </header>
+
+      <main class="mx-auto max-w-6xl px-6 py-10">
+        <section class="grid gap-6 md:grid-cols-[1.2fr_0.8fr]">
+          <div>
+            <p class="text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">Admin</p>
+            <h1 class="mt-3 text-3xl font-semibold tracking-normal text-white">
+              <%= typeof settingsMode !== 'undefined' && settingsMode ? 'Settings' : 'Dashboard' %>
+            </h1>
+            <p class="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
+              Administrative access is restricted to verified admin accounts.
+            </p>
+          </div>
+
+          <div class="rounded-lg border border-white/10 bg-white/[0.03] p-5">
+            <div class="flex items-center gap-4">
+              <img class="h-14 w-14 rounded-full border border-white/10 object-cover" src="<%= currentUser.avatar || 'https://www.gravatar.com/avatar/?d=mp' %>" alt="" referrerpolicy="no-referrer" />
+              <div class="min-w-0">
+                <p class="truncate text-sm font-semibold text-white"><%= currentUser.name %></p>
+                <p class="truncate text-sm text-zinc-400"><%= currentUser.email %></p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

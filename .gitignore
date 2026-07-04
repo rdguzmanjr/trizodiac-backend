@@ -1,0 +1,6 @@
+.env
+.vercel
+node_modules
+npm-debug.log*
+public/css/styles.css.map
+.DS_Store
