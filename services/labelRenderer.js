@@ -217,12 +217,12 @@ async function renderOrderLabelPng(order) {
 
   const lines = {
     header: 230,
-    order: 350,
-    receiver: 585,
-    address: 810,
-    items: 1040,
-    payment: 1225,
-    notes: 1325
+    order: 560,
+    receiver: 745,
+    address: 930,
+    items: 1115,
+    payment: 1300,
+    notes: 1360
   };
 
   Object.values(lines).forEach((y) => drawLine(ctx, left, y, right, y));
@@ -236,40 +236,57 @@ async function renderOrderLabelPng(order) {
 
   setFont(ctx, 900, 48);
   ctx.textBaseline = 'top';
-  ctx.fillText('ORDER #:', 66, 258);
+  ctx.fillText('ORDER #:', 66, 318);
   setFont(ctx, 900, 42);
-  ctx.fillText(order.order_number, 310, 262);
+  ctx.fillText(order.order_number, 310, 322);
   setFont(ctx, 900, 42);
-  ctx.fillText('DATE:', 66, 306);
-  ctx.fillText(order.order_date_display, 218, 306);
+  ctx.fillText('DATE:', 66, 442);
+  ctx.fillText(order.order_date_display, 218, 442);
 
-  drawLabel(ctx, 'RECEIVER:', order.receiver, 66, 392, 1340, 160);
-  drawLabel(ctx, 'ADDRESS:', order.address, 66, 624, 1340, 155);
-  drawLabel(ctx, 'ITEMS:', order.items, 66, 850, 1340, 160);
-  drawLabel(ctx, 'PAYMENT:', order.payment, 66, 1082, 610, 112, {
+  drawLabel(ctx, 'RECEIVER:', order.receiver, 66, 602, 1340, 112, {
     valueTop: 70,
     valueSize: 37,
     lineHeight: 42
   });
-  drawLabel(ctx, 'TOTAL:', order.total_display, 800, 1082, 600, 112, {
+  drawLabel(ctx, 'ADDRESS:', order.address, 66, 787, 1340, 112, {
     valueTop: 70,
     valueSize: 37,
     lineHeight: 42
   });
-  drawLabel(ctx, 'NOTES:', order.notes || '', 66, 1258, 1340, 46, {
-    labelSize: 42,
-    valueTop: 48,
-    valueSize: 28,
-    lineHeight: 32
+  drawLabel(ctx, 'ITEMS:', order.items, 66, 972, 1340, 112, {
+    valueTop: 70,
+    valueSize: 37,
+    lineHeight: 42
   });
+  drawLabel(ctx, 'PAYMENT:', order.payment, 66, 1157, 610, 112, {
+    valueTop: 70,
+    valueSize: 37,
+    lineHeight: 42
+  });
+  drawLabel(ctx, 'TOTAL:', order.total_display, 800, 1157, 600, 112, {
+    valueTop: 70,
+    valueSize: 37,
+    lineHeight: 42
+  });
+  setFont(ctx, 900, 34);
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'left';
+  ctx.fillText('NOTES:', 66, 1318);
+  if (order.notes) {
+    drawTextBlock(ctx, order.notes, 238, 1322, 1160, 30, {
+      fontWeight: 700,
+      fontSize: 26,
+      lineHeight: 30
+    });
+  }
 
   const barcode = await barcodeImage(order.barcode_value || order.order_number);
-  ctx.drawImage(barcode, 184, 1364, 1114, 96);
+  ctx.drawImage(barcode, 184, 1400, 1114, 82);
 
   setFont(ctx, 500, 46);
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'center';
-  ctx.fillText(order.barcode_value || order.order_number, WIDTH / 2, 1538);
+  ctx.fillText(order.barcode_value || order.order_number, WIDTH / 2, 1550);
 
   return canvas.toBuffer('image/png');
 }
