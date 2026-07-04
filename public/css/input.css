@@ -31,6 +31,8 @@
     overflow: hidden;
     font-family: Arial, Helvetica, sans-serif;
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+    display: grid;
+    grid-template-rows: 15% 9.5% 13.5% 13.5% 13.5% 10.5% 6% 18.5%;
   }
 
   .waybill-label * {
@@ -39,7 +41,6 @@
   }
 
   .waybill-header {
-    height: 14%;
     border-bottom: 4px solid #000000;
     display: flex;
     flex-direction: column;
@@ -50,33 +51,35 @@
   }
 
   .waybill-brand {
-    font-size: 62px;
+    font-size: 58px;
     line-height: 0.95;
     font-weight: 900;
     letter-spacing: 8px;
   }
 
   .waybill-subtitle {
-    margin-top: 18px;
-    font-size: 21px;
+    margin-top: 12px;
+    font-size: 18px;
     line-height: 1;
     font-weight: 800;
-    letter-spacing: 10px;
+    letter-spacing: 9px;
     white-space: nowrap;
   }
 
   .waybill-order-row {
-    height: 7.4%;
     border-bottom: 4px solid #000000;
-    display: grid;
-    grid-template-columns: 1.45fr 1fr;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 8px 24px;
   }
 
   .waybill-field {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 0 24px;
+    min-height: 30px;
+    padding: 0;
     min-width: 0;
   }
 
@@ -90,41 +93,43 @@
   .waybill-field strong {
     min-width: 0;
     overflow-wrap: anywhere;
-    font-size: 22px;
+    font-size: 21px;
     font-weight: 900;
   }
 
   .waybill-section {
-    padding: 22px 24px;
+    min-height: 0;
+    overflow: hidden;
+    padding: 18px 24px;
     border-bottom: 4px solid #000000;
   }
 
   .waybill-receiver {
-    height: 14.8%;
   }
 
   .waybill-address {
-    height: 14%;
   }
 
   .waybill-items {
-    height: 14.3%;
   }
 
   .waybill-value {
-    margin-top: 14px;
-    font-size: 23px;
-    line-height: 1.25;
+    margin-top: 12px;
+    max-height: calc(100% - 38px);
+    overflow: hidden;
+    font-size: 22px;
+    line-height: 1.18;
     font-weight: 700;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }
 
   .waybill-payment-row {
-    height: 11.7%;
     display: grid;
     grid-template-columns: 1fr 0.94fr;
     border-bottom: 4px solid #000000;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .waybill-payment-row .waybill-section {
@@ -137,27 +142,28 @@
   }
 
   .waybill-notes {
-    height: 6.6%;
-    padding-top: 18px;
+    padding-top: 14px;
   }
 
   .waybill-notes .waybill-value {
-    margin-top: 8px;
-    font-size: 18px;
+    margin-top: 6px;
+    font-size: 16px;
+    line-height: 1.1;
   }
 
   .waybill-barcode-wrap {
-    height: 17.2%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 18px 40px 14px;
+    min-height: 0;
+    overflow: hidden;
+    padding: 8px 24px 18px;
   }
 
   .waybill-barcode {
-    width: 82%;
-    height: 102px;
+    width: 94%;
+    height: 51px;
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -172,8 +178,8 @@
   }
 
   .waybill-barcode-text {
-    margin-top: 10px;
-    font-size: 30px;
+    margin-top: 12px;
+    font-size: 25px;
     line-height: 1;
     font-weight: 500;
     letter-spacing: 2px;
