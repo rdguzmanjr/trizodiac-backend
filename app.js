@@ -14,6 +14,8 @@ require('./config/passport');
 
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
+const orderRoutes = require('./routes/orders');
+const { showDashboard } = require('./controllers/dashboardController');
 const { ensureAuthenticated, ensureAdmin } = require('./middleware/auth');
 
 const app = express();
@@ -50,6 +52,7 @@ app.use(morgan(isProduction ? 'combined' : 'dev'));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: isProduction ? '1d' : 0 }));
+app.use('/vendor/html2canvas', express.static(path.join(__dirname, 'node_modules/html2canvas/dist'), { maxAge: isProduction ? '7d' : 0 }));
 
 const requiredEnv = [
   'GOOGLE_CLIENT_ID',
@@ -104,7 +107,9 @@ function verifyCsrf(req, res, next) {
     return next();
   }
 
-  if (req.body && req.body._csrf === req.session.csrfToken) {
+  const token = req.get('x-csrf-token') || (req.body && req.body._csrf);
+
+  if (token && token === req.session.csrfToken) {
     return next();
   }
 
@@ -138,16 +143,16 @@ app.get('/black', ensureAuthenticated, (req, res) => {
   return res.render('black');
 });
 
-app.get('/dashboard', ensureAuthenticated, ensureAdmin, (req, res) => {
-  res.render('dashboard');
-});
+app.get('/dashboard', ensureAuthenticated, ensureAdmin, showDashboard);
 
-app.get('/settings', ensureAuthenticated, ensureAdmin, (req, res) => {
-  res.render('dashboard', { settingsMode: true });
+app.get('/settings', ensureAuthenticated, ensureAdmin, (req, res, next) => {
+  req.settingsMode = true;
+  return showDashboard(req, res, next);
 });
 
 app.use('/auth', authRoutes);
 app.use('/admin', ensureAuthenticated, ensureAdmin, verifyCsrf, adminRoutes);
+app.use('/orders', ensureAuthenticated, ensureAdmin, verifyCsrf, orderRoutes);
 
 app.use((req, res) => {
   res.status(404).render('error', {

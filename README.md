@@ -14,6 +14,7 @@ Express authentication system using Google OAuth, Passport.js, Supabase PostgreS
 - Admin user search, sorting, promotion, and demotion
 - CSRF protection for admin role changes
 - Vercel-compatible Express export
+- Order dashboard with generated waybill labels and high-resolution PNG downloads
 
 ## Local Setup
 
@@ -40,6 +41,7 @@ Express authentication system using Google OAuth, Passport.js, Supabase PostgreS
    SESSION_SECRET=
    PORT=3000
    INITIAL_ADMIN_EMAIL=jr.dguzman@gmail.com
+   APP_TIME_ZONE=Asia/Manila
    ```
 
 4. Run the SQL migration in Supabase SQL Editor.
@@ -74,7 +76,7 @@ SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
 SESSION_SECRET
 INITIAL_ADMIN_EMAIL
-NODE_ENV=production
+APP_TIME_ZONE
 ```
 
 Deploy from the project root after linking the project:
@@ -87,3 +89,7 @@ npx vercel --prod
 ## Admin Behavior
 
 The first user created with email `jr.dguzman@gmail.com` receives `is_admin = true`. Other users are created with `is_admin = false` and are redirected to `/black` after sign-in. Admins can promote and demote other users from `/admin`; the app prevents removing the last admin or demoting the currently signed-in admin account.
+
+## Orders
+
+Admins can create orders from `/dashboard`. The database generates unique order numbers in the format `TZ-YYYYMMDD-XXX`, with the sequence resetting by `APP_TIME_ZONE` date. Each order can be previewed as a Trizodiac waybill label, edited, deleted, and downloaded as a PNG.

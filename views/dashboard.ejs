@@ -3,15 +3,22 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Dashboard | Trizodiac</title>
+    <meta name="csrf-token" content="<%= csrfToken %>" />
+    <title>Orders | Trizodiac</title>
     <link rel="stylesheet" href="/css/styles.css" />
   </head>
   <body class="bg-zinc-950">
     <div class="min-h-screen">
-      <header class="border-b border-white/10 bg-zinc-950/80">
-        <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <a href="/dashboard" class="text-lg font-semibold text-white">Trizodiac Admin</a>
-          <nav class="flex items-center gap-2">
+      <header class="border-b border-white/10 bg-zinc-950/90">
+        <div class="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+          <div class="flex items-center justify-between">
+            <a href="/dashboard" class="text-lg font-semibold text-white">Trizodiac Admin</a>
+            <div class="flex items-center gap-3 lg:hidden">
+              <img class="h-9 w-9 rounded-full border border-white/10 object-cover" src="<%= currentUser.avatar || 'https://www.gravatar.com/avatar/?d=mp' %>" alt="" referrerpolicy="no-referrer" />
+            </div>
+          </div>
+          <nav class="flex flex-wrap items-center gap-2">
+            <a class="rounded-md bg-white/10 px-3 py-2 text-sm font-medium text-white" href="/dashboard">Orders</a>
             <a class="rounded-md px-3 py-2 text-sm font-medium text-zinc-300 hover:bg-white/10 hover:text-white" href="/admin">Users</a>
             <a class="rounded-md px-3 py-2 text-sm font-medium text-zinc-300 hover:bg-white/10 hover:text-white" href="/settings">Settings</a>
             <form method="post" action="/auth/logout">
@@ -21,29 +28,144 @@
         </div>
       </header>
 
-      <main class="mx-auto max-w-6xl px-6 py-10">
-        <section class="grid gap-6 md:grid-cols-[1.2fr_0.8fr]">
+      <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
+        <section class="mb-6 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p class="text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">Admin</p>
-            <h1 class="mt-3 text-3xl font-semibold tracking-normal text-white">
-              <%= typeof settingsMode !== 'undefined' && settingsMode ? 'Settings' : 'Dashboard' %>
-            </h1>
-            <p class="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
-              Administrative access is restricted to verified admin accounts.
-            </p>
+            <p class="text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">Orders</p>
+            <h1 class="mt-3 text-3xl font-semibold tracking-normal text-white">Dashboard</h1>
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">Create, preview, download, and manage Trizodiac shipping labels.</p>
           </div>
+          <button id="new-order-button" class="inline-flex min-h-11 items-center justify-center rounded-md bg-emerald-400 px-5 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-200" type="button">
+            New Order
+          </button>
+        </section>
 
-          <div class="rounded-lg border border-white/10 bg-white/[0.03] p-5">
-            <div class="flex items-center gap-4">
-              <img class="h-14 w-14 rounded-full border border-white/10 object-cover" src="<%= currentUser.avatar || 'https://www.gravatar.com/avatar/?d=mp' %>" alt="" referrerpolicy="no-referrer" />
-              <div class="min-w-0">
-                <p class="truncate text-sm font-semibold text-white"><%= currentUser.name %></p>
-                <p class="truncate text-sm text-zinc-400"><%= currentUser.email %></p>
-              </div>
+        <section class="mb-4 grid gap-3 lg:grid-cols-[1fr_220px_160px]">
+          <label class="block">
+            <span class="sr-only">Search orders</span>
+            <input id="order-search" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-white placeholder:text-zinc-500 outline-none transition focus:border-emerald-300" type="search" placeholder="Search order number, receiver, payment, or total" />
+          </label>
+          <label class="block">
+            <span class="sr-only">Filter by date</span>
+            <input id="order-date-filter" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition focus:border-emerald-300" type="date" />
+          </label>
+          <button id="clear-filters" class="min-h-11 rounded-md border border-white/10 px-4 text-sm font-medium text-zinc-300 transition hover:bg-white/10 hover:text-white" type="button">Clear Filters</button>
+        </section>
+
+        <section class="overflow-hidden rounded-lg border border-white/10 bg-zinc-950">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-white/10">
+              <thead class="bg-white/[0.04]">
+                <tr>
+                  <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-400">Order Number</th>
+                  <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-400">Date</th>
+                  <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-400">Receiver</th>
+                  <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-400">Payment</th>
+                  <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-400">Total</th>
+                  <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-400">Status</th>
+                  <th class="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="orders-table-body" class="divide-y divide-white/10"></tbody>
+            </table>
+          </div>
+          <div id="empty-orders" class="hidden px-5 py-12 text-center text-sm text-zinc-400">No orders found.</div>
+          <div class="flex flex-col gap-3 border-t border-white/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p id="pagination-summary" class="text-sm text-zinc-400"></p>
+            <div class="flex items-center gap-2">
+              <button id="prev-page" class="rounded-md border border-white/10 px-3 py-2 text-sm font-medium text-zinc-300 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40" type="button">Previous</button>
+              <button id="next-page" class="rounded-md border border-white/10 px-3 py-2 text-sm font-medium text-zinc-300 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40" type="button">Next</button>
             </div>
           </div>
         </section>
       </main>
     </div>
+
+    <div id="order-modal" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/70 p-4 opacity-0 transition-opacity duration-200">
+      <div class="max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-lg border border-white/10 bg-zinc-950 shadow-2xl shadow-black">
+        <div class="flex items-center justify-between border-b border-white/10 px-5 py-4">
+          <div>
+            <h2 id="order-modal-title" class="text-lg font-semibold text-white">New Order</h2>
+            <p class="text-sm text-zinc-400">System fields are generated automatically.</p>
+          </div>
+          <button class="modal-close rounded-md px-3 py-2 text-sm text-zinc-400 hover:bg-white/10 hover:text-white" type="button" data-close-modal="order-modal">Close</button>
+        </div>
+        <form id="order-form" class="max-h-[calc(92vh-84px)] overflow-y-auto px-5 py-5">
+          <input type="hidden" id="order-id" />
+          <div class="grid gap-4 md:grid-cols-2">
+            <label class="block">
+              <span class="mb-1 block text-sm font-medium text-zinc-300">Order Number</span>
+              <input id="order-number" class="min-h-11 w-full rounded-md border border-white/10 bg-zinc-800 px-4 text-sm text-zinc-300 outline-none" type="text" readonly />
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-sm font-medium text-zinc-300">Date</span>
+              <input id="order-date-display" class="min-h-11 w-full rounded-md border border-white/10 bg-zinc-800 px-4 text-sm text-zinc-300 outline-none" type="text" readonly />
+            </label>
+          </div>
+
+          <div class="mt-5 grid gap-4 md:grid-cols-2">
+            <label class="block md:col-span-2">
+              <span class="mb-1 block text-sm font-medium text-zinc-300">Receiver</span>
+              <input id="receiver" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none focus:border-emerald-300" type="text" required />
+            </label>
+            <label class="block md:col-span-2">
+              <span class="mb-1 block text-sm font-medium text-zinc-300">Address</span>
+              <textarea id="address" class="min-h-24 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-emerald-300" required></textarea>
+            </label>
+            <label class="block md:col-span-2">
+              <span class="mb-1 block text-sm font-medium text-zinc-300">Items</span>
+              <textarea id="items" class="min-h-24 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-emerald-300" required></textarea>
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-sm font-medium text-zinc-300">Payment</span>
+              <input id="payment" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none focus:border-emerald-300" type="text" required />
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-sm font-medium text-zinc-300">Total</span>
+              <input id="total" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none focus:border-emerald-300" type="number" min="0" step="0.01" required />
+            </label>
+            <label class="block md:col-span-2">
+              <span class="mb-1 block text-sm font-medium text-zinc-300">Notes</span>
+              <textarea id="notes" class="min-h-20 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-emerald-300"></textarea>
+            </label>
+          </div>
+
+          <p id="order-form-error" class="mt-4 hidden rounded-md border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100"></p>
+
+          <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button class="rounded-md border border-white/10 px-5 py-3 text-sm font-medium text-zinc-300 hover:bg-white/10 hover:text-white" type="button" data-close-modal="order-modal">Cancel</button>
+            <button id="generate-label-button" class="rounded-md bg-emerald-400 px-5 py-3 text-sm font-semibold text-zinc-950 hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60" type="submit">Generate Label</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="label-modal" class="fixed inset-0 z-50 hidden bg-black/80 opacity-0 transition-opacity duration-200">
+      <div class="flex h-full flex-col">
+        <div class="flex flex-col gap-3 border-b border-white/10 bg-zinc-950 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-white">Label Preview</h2>
+            <p id="label-preview-meta" class="text-sm text-zinc-400"></p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button class="preview-tool" type="button" data-zoom="out">Zoom Out</button>
+            <button class="preview-tool" type="button" data-zoom="in">Zoom In</button>
+            <button class="preview-tool" type="button" data-zoom="fit">Fit to Screen</button>
+            <button class="preview-tool" type="button" data-zoom="reset">Reset Zoom</button>
+            <button id="download-label-button" class="rounded-md bg-emerald-400 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-emerald-300" type="button">Download</button>
+            <button class="rounded-md border border-white/10 px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-white/10 hover:text-white" type="button" data-close-modal="label-modal">Close</button>
+          </div>
+        </div>
+        <div id="label-preview-scroll" class="flex-1 overflow-auto p-6">
+          <div id="label-preview-stage" class="mx-auto origin-top transition-transform duration-150">
+            <%- include('partials/label') %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <template id="orders-data"><%- ordersJson %></template>
+    <script src="/vendor/html2canvas/html2canvas.min.js"></script>
+    <script src="/js/dashboard.js"></script>
   </body>
 </html>
