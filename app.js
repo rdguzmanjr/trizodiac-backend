@@ -53,7 +53,6 @@ app.use(morgan(isProduction ? 'combined' : 'dev'));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: isProduction ? '1d' : 0 }));
-app.use('/vendor/html2canvas', express.static(path.join(__dirname, 'node_modules/html2canvas/dist'), { maxAge: isProduction ? '7d' : 0 }));
 
 const requiredEnv = [
   'GOOGLE_CLIENT_ID',

@@ -9,12 +9,13 @@
     "build:css": "tailwindcss -i ./public/css/input.css -o ./public/css/styles.css --minify",
     "dev": "NODE_ENV=development nodemon app.js",
     "start": "node app.js",
-    "check": "node --check app.js && find config controllers middleware models routes -name '*.js' -print0 | xargs -0 -n1 node --check"
+    "check": "node --check app.js && find config controllers middleware models routes services -name '*.js' -print0 | xargs -0 -n1 node --check"
   },
   "engines": {
     "node": ">=22.0.0"
   },
   "dependencies": {
+    "@napi-rs/canvas": "1.0.2",
     "@supabase/supabase-js": "2.110.0",
     "bwip-js": "4.7.0",
     "connect-flash": "0.1.1",
@@ -23,7 +24,6 @@
     "express": "5.2.1",
     "express-session": "1.18.2",
     "helmet": "8.1.0",
-    "html2canvas": "1.4.1",
     "morgan": "1.10.1",
     "passport": "0.7.0",
     "passport-google-oauth20": "2.0.0"

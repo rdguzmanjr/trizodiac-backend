@@ -1,8 +1,6 @@
-const bwipjs = require('bwip-js');
 const { supabase } = require('../config/supabase');
 
 const APP_TIME_ZONE = process.env.APP_TIME_ZONE || 'Asia/Manila';
-const BARCODE_TYPE = 'code128';
 
 function getParts(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -66,19 +64,6 @@ function validatePayload(payload) {
   };
 }
 
-function barcodeSvg(value) {
-  return bwipjs.toSVG({
-    bcid: BARCODE_TYPE,
-    text: value,
-    scale: 3,
-    height: 18,
-    includetext: false,
-    backgroundcolor: 'FFFFFF',
-    paddingwidth: 0,
-    paddingheight: 0
-  });
-}
-
 function decorateOrder(order) {
   if (!order) {
     return null;
@@ -87,8 +72,7 @@ function decorateOrder(order) {
   return {
     ...order,
     total_display: Number(order.total).toFixed(2),
-    order_date_display: formatOrderDate(order.order_date),
-    barcode_svg: barcodeSvg(order.barcode_value || order.order_number)
+    order_date_display: formatOrderDate(order.order_date)
   };
 }
 
@@ -104,6 +88,26 @@ async function listOrders() {
   }
 
   return (data || []).map(decorateOrder);
+}
+
+async function getOrder(id) {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    const notFound = new Error('Order not found.');
+    notFound.status = 404;
+    throw notFound;
+  }
+
+  return decorateOrder(data);
 }
 
 async function getNextMetadata() {
@@ -125,8 +129,7 @@ async function getNextMetadata() {
     order_number: orderNumber,
     order_date: orderDate,
     order_date_display: formatOrderDate(orderDate),
-    barcode_value: orderNumber,
-    barcode_svg: barcodeSvg(orderNumber)
+    barcode_value: orderNumber
   };
 }
 
@@ -178,6 +181,7 @@ async function deleteOrder(id) {
 
 module.exports = {
   listOrders,
+  getOrder,
   getNextMetadata,
   createOrder,
   updateOrder,

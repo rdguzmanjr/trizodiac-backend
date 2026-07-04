@@ -33,7 +33,7 @@ const orderForm = document.getElementById('order-form');
 const orderError = document.getElementById('order-form-error');
 const labelStage = document.getElementById('label-preview-stage');
 const labelScroll = document.getElementById('label-preview-scroll');
-const labelElement = document.getElementById('waybill-label');
+const labelImage = document.getElementById('label-preview-image');
 const downloadButton = document.getElementById('download-label-button');
 
 function money(value) {
@@ -228,20 +228,15 @@ function findOrder(id) {
   return state.orders.find((order) => order.id === id);
 }
 
-function fillLabel(order) {
-  labelElement.querySelectorAll('[data-label-field]').forEach((element) => {
-    const field = element.dataset.labelField;
-    if (field === 'barcode_svg') {
-      element.innerHTML = order.barcode_svg || '';
-      return;
-    }
-    if (field === 'total_display') {
-      element.textContent = money(order.total);
-      return;
-    }
-    element.textContent = order[field] || '';
-  });
-  document.getElementById('label-preview-meta').textContent = `${order.order_number} · ${order.receiver}`;
+function labelImageUrl(order, options = {}) {
+  const version = encodeURIComponent(order.updated_at || order.created_at || order.order_number);
+  const params = new URLSearchParams({ v: version });
+
+  if (options.download) {
+    params.set('download', '1');
+  }
+
+  return `/orders/${encodeURIComponent(order.id)}/label.png?${params.toString()}`;
 }
 
 function setZoom(value) {
@@ -250,47 +245,35 @@ function setZoom(value) {
 }
 
 function fitLabelToScreen() {
-  const widthRatio = (labelScroll.clientWidth - 48) / labelElement.offsetWidth;
-  const heightRatio = (labelScroll.clientHeight - 48) / labelElement.offsetHeight;
+  const widthRatio = (labelScroll.clientWidth - 48) / labelImage.offsetWidth;
+  const heightRatio = (labelScroll.clientHeight - 48) / labelImage.offsetHeight;
   setZoom(Math.min(widthRatio, heightRatio, 1));
 }
 
 function showLabel(order) {
   state.previewOrder = order;
-  fillLabel(order);
+  document.getElementById('label-preview-meta').textContent = `${order.order_number} · ${order.receiver}`;
+  labelImage.alt = `${order.order_number} shipping label`;
+  labelImage.onload = fitLabelToScreen;
+  labelImage.src = labelImageUrl(order);
   setZoom(1);
   openModal(labelModal);
-  window.setTimeout(fitLabelToScreen, 80);
+  if (labelImage.complete && labelImage.naturalWidth) {
+    window.setTimeout(fitLabelToScreen, 80);
+  }
 }
 
-async function downloadCurrentLabel(order = state.previewOrder) {
+function downloadCurrentLabel(order = state.previewOrder) {
   if (!order) {
     return;
   }
 
-  fillLabel(order);
-  const clone = labelElement.cloneNode(true);
-  clone.id = 'waybill-label-export';
-  clone.style.width = '741px';
-  clone.style.transform = 'none';
-  clone.style.position = 'fixed';
-  clone.style.left = '-10000px';
-  clone.style.top = '0';
-  document.body.appendChild(clone);
-
-  try {
-    const canvas = await window.html2canvas(clone, {
-      backgroundColor: '#ffffff',
-      scale: 2,
-      useCORS: true
-    });
-    const link = document.createElement('a');
-    link.href = canvas.toDataURL('image/png');
-    link.download = `${order.order_number}.png`;
-    link.click();
-  } finally {
-    clone.remove();
-  }
+  const link = document.createElement('a');
+  link.href = labelImageUrl(order, { download: true });
+  link.download = `${order.order_number}.png`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
 }
 
 async function deleteOrder(id) {
