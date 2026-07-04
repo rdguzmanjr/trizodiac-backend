@@ -216,12 +216,12 @@ async function renderOrderLabelPng(order) {
   ctx.stroke();
 
   const lines = {
-    header: 230,
-    order: 560,
-    receiver: 745,
-    address: 930,
-    items: 1115,
-    payment: 1300,
+    header: 345,
+    order: 530,
+    receiver: 715,
+    address: 900,
+    items: 1085,
+    payment: 1270,
     notes: 1360
   };
 
@@ -229,41 +229,41 @@ async function renderOrderLabelPng(order) {
   drawLine(ctx, 740, lines.items, 740, lines.payment);
 
   ctx.textBaseline = 'alphabetic';
-  setFont(ctx, 900, 116);
-  drawCenteredSpacedText(ctx, 'TRIZODIAC', WIDTH / 2, 140, 14);
+  setFont(ctx, 900, 122);
+  drawCenteredSpacedText(ctx, 'TRIZODIAC', WIDTH / 2, 165, 14);
   setFont(ctx, 900, 38);
-  drawCenteredSpacedText(ctx, 'THANK YOU FOR YOUR ORDER!', WIDTH / 2, 200, 20);
+  drawCenteredSpacedText(ctx, 'THANK YOU FOR YOUR ORDER!', WIDTH / 2, 245, 20);
 
   setFont(ctx, 900, 48);
   ctx.textBaseline = 'top';
-  ctx.fillText('ORDER #:', 66, 318);
+  ctx.fillText('ORDER #:', 66, 382);
   setFont(ctx, 900, 42);
-  ctx.fillText(order.order_number, 310, 322);
+  ctx.fillText(order.order_number, 310, 386);
   setFont(ctx, 900, 42);
-  ctx.fillText('DATE:', 66, 442);
-  ctx.fillText(order.order_date_display, 218, 442);
+  ctx.fillText('DATE:', 66, 462);
+  ctx.fillText(order.order_date_display, 218, 462);
 
-  drawLabel(ctx, 'RECEIVER:', order.receiver, 66, 602, 1340, 112, {
+  drawLabel(ctx, 'RECEIVER:', order.receiver, 66, 572, 1340, 112, {
     valueTop: 70,
     valueSize: 37,
     lineHeight: 42
   });
-  drawLabel(ctx, 'ADDRESS:', order.address, 66, 787, 1340, 112, {
+  drawLabel(ctx, 'ADDRESS:', order.address, 66, 757, 1340, 112, {
     valueTop: 70,
     valueSize: 37,
     lineHeight: 42
   });
-  drawLabel(ctx, 'ITEMS:', order.items, 66, 972, 1340, 112, {
+  drawLabel(ctx, 'ITEMS:', order.items, 66, 942, 1340, 112, {
     valueTop: 70,
     valueSize: 37,
     lineHeight: 42
   });
-  drawLabel(ctx, 'PAYMENT:', order.payment, 66, 1157, 610, 112, {
+  drawLabel(ctx, 'PAYMENT:', order.payment, 66, 1127, 610, 112, {
     valueTop: 70,
     valueSize: 37,
     lineHeight: 42
   });
-  drawLabel(ctx, 'TOTAL:', order.total_display, 800, 1157, 600, 112, {
+  drawLabel(ctx, 'TOTAL:', order.total_display, 800, 1127, 600, 112, {
     valueTop: 70,
     valueSize: 37,
     lineHeight: 42
@@ -271,9 +271,9 @@ async function renderOrderLabelPng(order) {
   setFont(ctx, 900, 34);
   ctx.textBaseline = 'top';
   ctx.textAlign = 'left';
-  ctx.fillText('NOTES:', 66, 1318);
+  ctx.fillText('NOTES:', 66, 1288);
   if (order.notes) {
-    drawTextBlock(ctx, order.notes, 238, 1322, 1160, 30, {
+    drawTextBlock(ctx, order.notes, 238, 1292, 1160, 56, {
       fontWeight: 700,
       fontSize: 26,
       lineHeight: 30
