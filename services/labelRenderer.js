@@ -1,3 +1,4 @@
+const path = require('path');
 const { createCanvas, GlobalFonts, loadImage } = require('@napi-rs/canvas');
 const bwipjs = require('bwip-js');
 
@@ -16,14 +17,15 @@ function registerFonts() {
   }
 
   [
-    '@fontsource/roboto/files/roboto-latin-400-normal.woff',
-    '@fontsource/roboto/files/roboto-latin-500-normal.woff',
-    '@fontsource/roboto/files/roboto-latin-700-normal.woff',
-    '@fontsource/roboto/files/roboto-latin-900-normal.woff'
+    'roboto-latin-400-normal.woff',
+    'roboto-latin-500-normal.woff',
+    'roboto-latin-700-normal.woff',
+    'roboto-latin-900-normal.woff'
   ].forEach((fontPath) => {
-    const key = GlobalFonts.registerFromPath(require.resolve(fontPath), LABEL_FONT);
+    const fullPath = path.join(process.cwd(), 'assets', 'fonts', fontPath);
+    const key = GlobalFonts.registerFromPath(fullPath, LABEL_FONT);
     if (!key) {
-      throw new Error(`Unable to register label font: ${fontPath}`);
+      throw new Error(`Unable to register label font: ${fullPath}`);
     }
   });
 

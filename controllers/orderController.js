@@ -36,6 +36,11 @@ async function labelImage(req, res) {
     res.setHeader('Content-Disposition', `${disposition}; filename="${order.order_number}.png"`);
     res.send(image);
   } catch (error) {
+    console.error('Label image render failed', {
+      orderId: req.params.id,
+      message: error.message,
+      stack: error.stack
+    });
     sendError(res, error);
   }
 }
