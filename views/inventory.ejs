@@ -83,18 +83,22 @@
         <form id="inventory-form" class="max-h-[calc(92vh-84px)] overflow-y-auto px-5 py-5">
           <input type="hidden" id="inventory-id" />
           <div class="grid gap-4 md:grid-cols-2">
-            <label class="block">
+            <div class="relative">
               <span class="mb-1 block text-sm font-medium text-zinc-300">Bundle Name</span>
-              <input id="bundle-name" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none focus:border-emerald-300" type="text" required />
-            </label>
+              <input id="bundle-id" type="hidden" />
+              <input id="bundle-name" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none focus:border-emerald-300" type="text" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="bundle-options" placeholder="Search or add bundle" required />
+              <div id="bundle-options" class="absolute left-0 right-0 top-[72px] z-50 hidden max-h-56 overflow-y-auto rounded-md border border-white/10 bg-zinc-900 p-1 shadow-xl shadow-black/40"></div>
+            </div>
             <label class="block">
               <span class="mb-1 block text-sm font-medium text-zinc-300">Code #</span>
               <input id="code-number" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none focus:border-emerald-300" type="text" required />
             </label>
-            <label class="block md:col-span-2">
+            <div class="relative md:col-span-2">
               <span class="mb-1 block text-sm font-medium text-zinc-300">Product Specification</span>
-              <input id="product-specification" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none focus:border-emerald-300" type="text" required />
-            </label>
+              <input id="product-specification-id" type="hidden" />
+              <input id="product-specification" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none focus:border-emerald-300" type="text" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="product-specification-options" placeholder="Search or add product specification" required />
+              <div id="product-specification-options" class="absolute left-0 right-0 top-[72px] z-50 hidden max-h-56 overflow-y-auto rounded-md border border-white/10 bg-zinc-900 p-1 shadow-xl shadow-black/40"></div>
+            </div>
             <label class="block">
               <span class="mb-1 block text-sm font-medium text-zinc-300">Size in Inches</span>
               <input id="size-inches" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none focus:border-emerald-300" type="text" placeholder="32 inch" required />
@@ -120,6 +124,8 @@
     </div>
 
     <script id="inventory-data" type="application/json"><%- entriesJson %></script>
+    <script id="bundle-data" type="application/json"><%- bundlesJson %></script>
+    <script id="product-specification-data" type="application/json"><%- productSpecificationsJson %></script>
     <script src="/js/inventory.js?v=<%= assetVersion %>"></script>
   </body>
 </html>

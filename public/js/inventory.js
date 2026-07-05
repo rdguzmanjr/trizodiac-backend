@@ -1,19 +1,22 @@
-function readInitialEntries() {
-  const dataElement = document.getElementById('inventory-data');
+function readJsonScript(id) {
+  const dataElement = document.getElementById(id);
   const rawData = dataElement?.textContent || '[]';
 
   try {
     return JSON.parse(rawData);
   } catch (error) {
-    console.error('Unable to load initial inventory entries.', error);
+    console.error(`Unable to load ${id}.`, error);
     return [];
   }
 }
 
 const state = {
-  entries: readInitialEntries(),
+  entries: readJsonScript('inventory-data'),
+  bundles: readJsonScript('bundle-data'),
+  productSpecifications: readJsonScript('product-specification-data'),
   search: '',
-  activeEntry: null
+  activeEntry: null,
+  openCombobox: null
 };
 
 const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
@@ -22,6 +25,13 @@ const emptyInventory = document.getElementById('empty-inventory');
 const inventoryModal = document.getElementById('inventory-modal');
 const inventoryForm = document.getElementById('inventory-form');
 const inventoryError = document.getElementById('inventory-form-error');
+const bundleIdInput = document.getElementById('bundle-id');
+const bundleNameInput = document.getElementById('bundle-name');
+const bundleOptions = document.getElementById('bundle-options');
+const productSpecificationIdInput = document.getElementById('product-specification-id');
+const productSpecificationInput = document.getElementById('product-specification');
+const productSpecificationOptions = document.getElementById('product-specification-options');
+const priceInput = document.getElementById('price');
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -87,6 +97,7 @@ function openModal() {
 }
 
 function closeModal() {
+  hideComboboxes();
   inventoryModal.classList.add('opacity-0');
   window.setTimeout(() => {
     inventoryModal.classList.add('hidden');
@@ -99,24 +110,149 @@ function setFormError(message) {
   inventoryError.classList.toggle('hidden', !message);
 }
 
+function optionButton(label, meta, type, id) {
+  const subtitle = meta ? `<span class="text-xs text-zinc-400">${escapeHtml(meta)}</span>` : '';
+
+  return `
+    <button class="flex w-full items-center justify-between gap-3 rounded px-3 py-2 text-left text-sm text-zinc-100 hover:bg-white/10 focus:bg-white/10 focus:outline-none" type="button" data-combobox-type="${type}" data-option-id="${escapeHtml(id)}">
+      <span class="truncate">${escapeHtml(label)}</span>
+      ${subtitle}
+    </button>
+  `;
+}
+
+function noMatch(text) {
+  return `<div class="px-3 py-2 text-sm text-zinc-400">${escapeHtml(text)}</div>`;
+}
+
+function hideComboboxes() {
+  state.openCombobox = null;
+  bundleOptions.classList.add('hidden');
+  productSpecificationOptions.classList.add('hidden');
+  bundleNameInput.setAttribute('aria-expanded', 'false');
+  productSpecificationInput.setAttribute('aria-expanded', 'false');
+}
+
+function showBundleOptions() {
+  const query = bundleNameInput.value.trim().toLowerCase();
+  const matches = state.bundles
+    .filter((bundle) => !query || bundle.bundle_name.toLowerCase().includes(query))
+    .slice(0, 12);
+
+  bundleOptions.innerHTML = matches.length
+    ? matches.map((bundle) => optionButton(bundle.bundle_name, bundle.price, 'bundle', bundle.id)).join('')
+    : noMatch('No matching bundle. Save to create it.');
+
+  productSpecificationOptions.classList.add('hidden');
+  productSpecificationInput.setAttribute('aria-expanded', 'false');
+  bundleOptions.classList.remove('hidden');
+  bundleNameInput.setAttribute('aria-expanded', 'true');
+  state.openCombobox = 'bundle';
+}
+
+function showProductSpecificationOptions() {
+  const query = productSpecificationInput.value.trim().toLowerCase();
+  const matches = state.productSpecifications
+    .filter((spec) => !query || spec.product_specification.toLowerCase().includes(query))
+    .slice(0, 12);
+
+  productSpecificationOptions.innerHTML = matches.length
+    ? matches.map((spec) => optionButton(spec.product_specification, '', 'product-specification', spec.id)).join('')
+    : noMatch('No matching product specification. Save to create it.');
+
+  bundleOptions.classList.add('hidden');
+  bundleNameInput.setAttribute('aria-expanded', 'false');
+  productSpecificationOptions.classList.remove('hidden');
+  productSpecificationInput.setAttribute('aria-expanded', 'true');
+  state.openCombobox = 'product-specification';
+}
+
+function selectBundle(id) {
+  const bundle = state.bundles.find((item) => item.id === id);
+  if (!bundle) {
+    return;
+  }
+
+  bundleIdInput.value = bundle.id;
+  bundleNameInput.value = bundle.bundle_name;
+  priceInput.value = bundle.price;
+  hideComboboxes();
+}
+
+function selectProductSpecification(id) {
+  const spec = state.productSpecifications.find((item) => item.id === id);
+  if (!spec) {
+    return;
+  }
+
+  productSpecificationIdInput.value = spec.id;
+  productSpecificationInput.value = spec.product_specification;
+  hideComboboxes();
+}
+
+function upsertBundleOption(entry) {
+  const bundle = {
+    id: entry.bundle_id,
+    bundle_name: entry.bundle_name,
+    price: entry.price
+  };
+  const index = state.bundles.findIndex((item) => item.id === bundle.id);
+
+  if (!bundle.id) {
+    return;
+  }
+
+  if (index >= 0) {
+    state.bundles[index] = bundle;
+  } else {
+    state.bundles.push(bundle);
+  }
+
+  state.bundles.sort((a, b) => a.bundle_name.localeCompare(b.bundle_name));
+}
+
+function upsertProductSpecificationOption(entry) {
+  const spec = {
+    id: entry.product_specification_id,
+    product_specification: entry.product_specification
+  };
+  const index = state.productSpecifications.findIndex((item) => item.id === spec.id);
+
+  if (!spec.id) {
+    return;
+  }
+
+  if (index >= 0) {
+    state.productSpecifications[index] = spec;
+  } else {
+    state.productSpecifications.push(spec);
+  }
+
+  state.productSpecifications.sort((a, b) => a.product_specification.localeCompare(b.product_specification));
+}
+
 function setFormValues(entry) {
   document.getElementById('inventory-id').value = entry?.id || '';
-  document.getElementById('bundle-name').value = entry?.bundle_name || '';
+  bundleIdInput.value = entry?.bundle_id || '';
+  bundleNameInput.value = entry?.bundle_name || '';
   document.getElementById('code-number').value = entry?.code_number || '';
-  document.getElementById('product-specification').value = entry?.product_specification || '';
+  productSpecificationIdInput.value = entry?.product_specification_id || '';
+  productSpecificationInput.value = entry?.product_specification || '';
   document.getElementById('size-inches').value = entry?.size_inches || '';
   document.getElementById('length-inches').value = entry?.length_inches || '';
-  document.getElementById('price').value = entry?.price || '';
+  priceInput.value = entry?.price || '';
 }
 
 function getFormPayload() {
   return {
-    bundle_name: document.getElementById('bundle-name').value,
+    bundle_id: bundleIdInput.value,
+    bundle_name: bundleNameInput.value,
     code_number: document.getElementById('code-number').value,
-    product_specification: document.getElementById('product-specification').value,
+    product_specification_id: productSpecificationIdInput.value,
+    product_specification: productSpecificationInput.value,
     size_inches: document.getElementById('size-inches').value,
     length_inches: document.getElementById('length-inches').value,
-    price: document.getElementById('price').value
+    price: priceInput.value
   };
 }
 
@@ -159,12 +295,18 @@ function upsertEntry(entry) {
   } else {
     state.entries.unshift(entry);
   }
+
+  upsertBundleOption(entry);
+  upsertProductSpecificationOption(entry);
 }
 
 function openNewEntry() {
   setFormError('');
+  hideComboboxes();
   state.activeEntry = null;
   inventoryForm.reset();
+  bundleIdInput.value = '';
+  productSpecificationIdInput.value = '';
   document.getElementById('inventory-modal-title').textContent = 'New Inventory Entry';
   document.getElementById('save-inventory-button').textContent = 'Save Entry';
   openModal();
@@ -172,6 +314,7 @@ function openNewEntry() {
 
 function openEditEntry(entry) {
   setFormError('');
+  hideComboboxes();
   state.activeEntry = entry;
   document.getElementById('inventory-modal-title').textContent = 'Edit Inventory Entry';
   document.getElementById('save-inventory-button').textContent = 'Update Entry';
@@ -230,6 +373,49 @@ document.getElementById('clear-inventory-search').addEventListener('click', () =
 
 document.querySelectorAll('[data-close-inventory-modal]').forEach((button) => {
   button.addEventListener('click', closeModal);
+});
+
+bundleNameInput.addEventListener('focus', showBundleOptions);
+bundleNameInput.addEventListener('input', () => {
+  bundleIdInput.value = '';
+  showBundleOptions();
+});
+
+productSpecificationInput.addEventListener('focus', showProductSpecificationOptions);
+productSpecificationInput.addEventListener('input', () => {
+  productSpecificationIdInput.value = '';
+  showProductSpecificationOptions();
+});
+
+bundleOptions.addEventListener('click', (event) => {
+  const option = event.target.closest('[data-option-id]');
+  if (option?.dataset.comboboxType === 'bundle') {
+    selectBundle(option.dataset.optionId);
+  }
+});
+
+productSpecificationOptions.addEventListener('click', (event) => {
+  const option = event.target.closest('[data-option-id]');
+  if (option?.dataset.comboboxType === 'product-specification') {
+    selectProductSpecification(option.dataset.optionId);
+  }
+});
+
+document.addEventListener('click', (event) => {
+  if (
+    !bundleNameInput.contains(event.target)
+    && !bundleOptions.contains(event.target)
+    && !productSpecificationInput.contains(event.target)
+    && !productSpecificationOptions.contains(event.target)
+  ) {
+    hideComboboxes();
+  }
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    hideComboboxes();
+  }
 });
 
 tableBody.addEventListener('click', (event) => {

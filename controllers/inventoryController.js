@@ -1,5 +1,9 @@
 const Inventory = require('../models/inventory');
 
+function jsonForScript(value) {
+  return JSON.stringify(value).replace(/</g, '\\u003c');
+}
+
 function sendError(res, error) {
   res.status(error.status || 500).json({
     error: error.status ? error.message : 'Inventory request failed.'
@@ -8,10 +12,17 @@ function sendError(res, error) {
 
 async function showInventory(req, res, next) {
   try {
-    const entries = await Inventory.listEntries();
+    const [entries, bundles, productSpecifications] = await Promise.all([
+      Inventory.listEntries(),
+      Inventory.listBundles(),
+      Inventory.listProductSpecifications()
+    ]);
+
     res.render('inventory', {
       entries,
-      entriesJson: JSON.stringify(entries).replace(/</g, '\\u003c')
+      entriesJson: jsonForScript(entries),
+      bundlesJson: jsonForScript(bundles),
+      productSpecificationsJson: jsonForScript(productSpecifications)
     });
   } catch (error) {
     next(error);
