@@ -172,7 +172,7 @@ function showTypeOptions() {
 
   typeOptions.innerHTML = matches.length
     ? matches.map((type) => optionButton(type.type_name, type.price, 'type', type.id)).join('')
-    : noMatch('No matching type. Create it on Manage Lists first.');
+    : noMatch('No matching type. Save to create it.');
 
   bundleOptions.classList.add('hidden');
   bundleNameInput.setAttribute('aria-expanded', 'false');
@@ -321,7 +321,8 @@ function getFormPayload() {
     product_specification_id: productSpecificationIdInput.value,
     product_specification: productSpecificationInput.value,
     size_inches: document.getElementById('size-inches').value,
-    length_inches: document.getElementById('length-inches').value
+    length_inches: document.getElementById('length-inches').value,
+    price: priceInput.value
   };
 }
 

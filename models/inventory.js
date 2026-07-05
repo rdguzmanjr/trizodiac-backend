@@ -48,9 +48,10 @@ function validateEntryPayload(payload) {
     code_number: normalizeText(payload.code_number),
     product_specification: normalizeText(payload.product_specification),
     size_inches: normalizeText(payload.size_inches),
-    length_inches: normalizeText(payload.length_inches)
+    length_inches: normalizeText(payload.length_inches),
+    price: normalizeText(payload.price)
   };
-  const required = ['bundle_name', 'type_name', 'code_number', 'product_specification', 'size_inches', 'length_inches'];
+  const required = ['bundle_name', 'type_name', 'code_number', 'product_specification', 'size_inches', 'length_inches', 'price'];
   const missing = required.filter((field) => !values[field]);
 
   if (missing.length) {
@@ -252,7 +253,7 @@ async function upsertBundle(bundleName, bundleId) {
   return createBundle({ bundle_name: bundleName });
 }
 
-async function resolveType(typeName, typeId) {
+async function resolveType(typeName, price, typeId) {
   const existingById = await getTypeById(typeId);
   if (existingById) {
     if (existingById.type_name.toLowerCase() !== typeName.toLowerCase()) {
@@ -267,7 +268,7 @@ async function resolveType(typeName, typeId) {
     return existingByName;
   }
 
-  throw createHttpError(400, 'Select an existing Type from the dropdown, or create it on the management page first.');
+  return createType({ type_name: typeName, price });
 }
 
 async function upsertProductSpecification(productSpecification, productSpecificationId) {
@@ -293,7 +294,7 @@ async function resolveEntryData(payload) {
   const values = validateEntryPayload(payload);
   const [bundle, type, spec] = await Promise.all([
     upsertBundle(values.bundle_name, values.bundle_id),
-    resolveType(values.type_name, values.type_id),
+    resolveType(values.type_name, values.price, values.type_id),
     upsertProductSpecification(values.product_specification, values.product_specification_id)
   ]);
 
