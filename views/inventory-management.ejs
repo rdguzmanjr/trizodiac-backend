@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content="<%= csrfToken %>" />
+    <title>Manage Inventory Lists | Trizodiac</title>
+    <link rel="stylesheet" href="/css/styles.css?v=<%= assetVersion %>" />
+  </head>
+  <body class="bg-zinc-950">
+    <div class="min-h-screen">
+      <header class="border-b border-white/10 bg-zinc-950/90">
+        <div class="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+          <div class="flex items-center justify-between">
+            <a href="/dashboard" class="text-lg font-semibold text-white">Trizodiac Admin</a>
+            <div class="flex items-center gap-3 lg:hidden">
+              <img class="h-9 w-9 rounded-full border border-white/10 object-cover" src="<%= currentUser.avatar || 'https://www.gravatar.com/avatar/?d=mp' %>" alt="" referrerpolicy="no-referrer" />
+            </div>
+          </div>
+          <nav class="flex flex-wrap items-center gap-2">
+            <a class="rounded-md px-3 py-2 text-sm font-medium text-zinc-300 hover:bg-white/10 hover:text-white" href="/dashboard">Orders</a>
+            <a class="rounded-md bg-white/10 px-3 py-2 text-sm font-medium text-white" href="/inventory">Inventory</a>
+            <a class="rounded-md px-3 py-2 text-sm font-medium text-zinc-300 hover:bg-white/10 hover:text-white" href="/admin">Users</a>
+            <a class="rounded-md px-3 py-2 text-sm font-medium text-zinc-300 hover:bg-white/10 hover:text-white" href="/settings">Settings</a>
+            <form method="post" action="/auth/logout">
+              <button class="rounded-md border border-white/10 px-3 py-2 text-sm font-medium text-zinc-300 hover:bg-white/10 hover:text-white" type="submit">Sign out</button>
+            </form>
+          </nav>
+        </div>
+      </header>
+
+      <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
+        <section class="mb-6 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p class="text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">Inventory</p>
+            <h1 class="mt-3 text-3xl font-semibold tracking-normal text-white">Manage Lists</h1>
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">Maintain the reusable Types, bundle names, and product specifications used by inventory entries.</p>
+          </div>
+          <a href="/inventory" class="inline-flex min-h-11 items-center justify-center rounded-md border border-white/10 px-5 text-sm font-semibold text-zinc-200 transition hover:bg-white/10 hover:text-white">Back to Inventory</a>
+        </section>
+
+        <div class="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+          <section class="rounded-lg border border-white/10 bg-zinc-950">
+            <div class="border-b border-white/10 px-5 py-4">
+              <h2 class="text-lg font-semibold text-white">Types</h2>
+              <p class="text-sm text-zinc-400">Type controls the price used on inventory entries.</p>
+            </div>
+            <form id="type-form" class="grid gap-3 border-b border-white/10 px-5 py-4 md:grid-cols-[1fr_180px_auto_auto]">
+              <input id="type-id" type="hidden" />
+              <label class="block">
+                <span class="sr-only">Type name</span>
+                <input id="type-name" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-emerald-300" type="text" placeholder="Type name" required />
+              </label>
+              <label class="block">
+                <span class="sr-only">Type price</span>
+                <input id="type-price" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-emerald-300" type="text" placeholder="Price" required />
+              </label>
+              <button id="save-type-button" class="rounded-md bg-emerald-400 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-emerald-300" type="submit">Save Type</button>
+              <button id="cancel-type-button" class="hidden rounded-md border border-white/10 px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-white/10 hover:text-white" type="button">Cancel</button>
+            </form>
+            <p id="type-error" class="mx-5 mt-4 hidden rounded-md border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100"></p>
+            <div class="overflow-x-auto p-5">
+              <table class="min-w-full border-collapse bg-white text-zinc-950">
+                <thead>
+                  <tr>
+                    <th class="border border-zinc-300 px-3 py-2 text-left text-sm font-black uppercase">Type</th>
+                    <th class="border border-zinc-300 px-3 py-2 text-left text-sm font-black uppercase">Price</th>
+                    <th class="border border-zinc-300 px-3 py-2 text-right text-sm font-black uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="type-table-body"></tbody>
+              </table>
+              <div id="empty-types" class="hidden px-5 py-8 text-center text-sm text-zinc-400">No types yet.</div>
+            </div>
+          </section>
+
+          <div class="grid gap-5">
+            <section class="rounded-lg border border-white/10 bg-zinc-950">
+              <div class="border-b border-white/10 px-5 py-4">
+                <h2 class="text-lg font-semibold text-white">Bundles</h2>
+              </div>
+              <form id="bundle-form" class="grid gap-3 border-b border-white/10 px-5 py-4 md:grid-cols-[1fr_auto_auto]">
+                <input id="bundle-id" type="hidden" />
+                <label class="block">
+                  <span class="sr-only">Bundle name</span>
+                  <input id="bundle-name" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-emerald-300" type="text" placeholder="Bundle name" required />
+                </label>
+                <button id="save-bundle-button" class="rounded-md bg-emerald-400 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-emerald-300" type="submit">Save Bundle</button>
+                <button id="cancel-bundle-button" class="hidden rounded-md border border-white/10 px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-white/10 hover:text-white" type="button">Cancel</button>
+              </form>
+              <p id="bundle-error" class="mx-5 mt-4 hidden rounded-md border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100"></p>
+              <div class="overflow-x-auto p-5">
+                <table class="min-w-full border-collapse bg-white text-zinc-950">
+                  <thead>
+                    <tr>
+                      <th class="border border-zinc-300 px-3 py-2 text-left text-sm font-black uppercase">Bundle Name</th>
+                      <th class="border border-zinc-300 px-3 py-2 text-right text-sm font-black uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="bundle-table-body"></tbody>
+                </table>
+                <div id="empty-bundles" class="hidden px-5 py-8 text-center text-sm text-zinc-400">No bundles yet.</div>
+              </div>
+            </section>
+
+            <section class="rounded-lg border border-white/10 bg-zinc-950">
+              <div class="border-b border-white/10 px-5 py-4">
+                <h2 class="text-lg font-semibold text-white">Product Specifications</h2>
+              </div>
+              <form id="product-specification-form" class="grid gap-3 border-b border-white/10 px-5 py-4 md:grid-cols-[1fr_auto_auto]">
+                <input id="product-specification-id" type="hidden" />
+                <label class="block">
+                  <span class="sr-only">Product specification</span>
+                  <input id="product-specification" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-emerald-300" type="text" placeholder="Product specification" required />
+                </label>
+                <button id="save-product-specification-button" class="rounded-md bg-emerald-400 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-emerald-300" type="submit">Save Spec</button>
+                <button id="cancel-product-specification-button" class="hidden rounded-md border border-white/10 px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-white/10 hover:text-white" type="button">Cancel</button>
+              </form>
+              <p id="product-specification-error" class="mx-5 mt-4 hidden rounded-md border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100"></p>
+              <div class="overflow-x-auto p-5">
+                <table class="min-w-full border-collapse bg-white text-zinc-950">
+                  <thead>
+                    <tr>
+                      <th class="border border-zinc-300 px-3 py-2 text-left text-sm font-black uppercase">Product Specification</th>
+                      <th class="border border-zinc-300 px-3 py-2 text-right text-sm font-black uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="product-specification-table-body"></tbody>
+                </table>
+                <div id="empty-product-specifications" class="hidden px-5 py-8 text-center text-sm text-zinc-400">No product specifications yet.</div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script id="bundle-data" type="application/json"><%- bundlesJson %></script>
+    <script id="type-data" type="application/json"><%- typesJson %></script>
+    <script id="product-specification-data" type="application/json"><%- productSpecificationsJson %></script>
+    <script src="/js/inventory-management.js?v=<%= assetVersion %>"></script>
+  </body>
+</html>

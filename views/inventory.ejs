@@ -36,15 +36,18 @@
             <h1 class="mt-3 text-3xl font-semibold tracking-normal text-white">Inventory Dashboard</h1>
             <p class="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">Track purchased bundle sets, item codes, specifications, sizes, lengths, and pricing.</p>
           </div>
-          <button id="new-inventory-button" class="inline-flex min-h-11 items-center justify-center rounded-md bg-emerald-400 px-5 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-200" type="button">
-            New Entry
-          </button>
+          <div class="flex flex-col gap-3 sm:flex-row">
+            <a href="/inventory/manage" class="inline-flex min-h-11 items-center justify-center rounded-md border border-white/10 px-5 text-sm font-semibold text-zinc-200 transition hover:bg-white/10 hover:text-white">Manage Lists</a>
+            <button id="new-inventory-button" class="inline-flex min-h-11 items-center justify-center rounded-md bg-emerald-400 px-5 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-200" type="button">
+              New Entry
+            </button>
+          </div>
         </section>
 
         <section class="mb-4 grid gap-3 lg:grid-cols-[1fr_160px]">
           <label class="block">
             <span class="sr-only">Search inventory</span>
-            <input id="inventory-search" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-white placeholder:text-zinc-500 outline-none transition focus:border-emerald-300" type="search" placeholder="Search bundle, code, product specification, size, length, or price" />
+            <input id="inventory-search" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-white placeholder:text-zinc-500 outline-none transition focus:border-emerald-300" type="search" placeholder="Search bundle, type, code, product specification, size, length, or price" />
           </label>
           <button id="clear-inventory-search" class="min-h-11 rounded-md border border-white/10 px-4 text-sm font-medium text-zinc-300 transition hover:bg-white/10 hover:text-white" type="button">Clear Search</button>
         </section>
@@ -55,6 +58,7 @@
               <thead class="bg-white text-zinc-950">
                 <tr>
                   <th class="border border-zinc-300 px-3 py-2 text-left text-sm font-black uppercase tracking-normal">Bundle Name</th>
+                  <th class="border border-zinc-300 px-3 py-2 text-left text-sm font-black uppercase tracking-normal">Type</th>
                   <th class="border border-zinc-300 px-3 py-2 text-left text-sm font-black uppercase tracking-normal">Code #</th>
                   <th class="border border-zinc-300 px-3 py-2 text-left text-sm font-black uppercase tracking-normal">Product Specification</th>
                   <th class="border border-zinc-300 px-3 py-2 text-left text-sm font-black uppercase tracking-normal">Size</th>
@@ -94,6 +98,12 @@
               <input id="code-number" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none focus:border-emerald-300" type="text" required />
             </label>
             <div class="relative md:col-span-2">
+              <span class="mb-1 block text-sm font-medium text-zinc-300">Type</span>
+              <input id="type-id" type="hidden" />
+              <input id="type-name" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none focus:border-emerald-300" type="text" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="type-options" placeholder="Search type" required />
+              <div id="type-options" class="absolute left-0 right-0 top-[72px] z-50 hidden max-h-56 overflow-y-auto rounded-md border border-white/10 bg-zinc-900 p-1 shadow-xl shadow-black/40"></div>
+            </div>
+            <div class="relative md:col-span-2">
               <span class="mb-1 block text-sm font-medium text-zinc-300">Product Specification</span>
               <input id="product-specification-id" type="hidden" />
               <input id="product-specification" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none focus:border-emerald-300" type="text" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="product-specification-options" placeholder="Search or add product specification" required />
@@ -109,7 +119,7 @@
             </label>
             <label class="block md:col-span-2">
               <span class="mb-1 block text-sm font-medium text-zinc-300">Price</span>
-              <input id="price" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none focus:border-emerald-300" type="text" placeholder="450 - 500" required />
+              <input id="price" class="min-h-11 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm text-zinc-400 outline-none" type="text" placeholder="Select a Type to set price" readonly />
             </label>
           </div>
 
@@ -125,6 +135,7 @@
 
     <script id="inventory-data" type="application/json"><%- entriesJson %></script>
     <script id="bundle-data" type="application/json"><%- bundlesJson %></script>
+    <script id="type-data" type="application/json"><%- typesJson %></script>
     <script id="product-specification-data" type="application/json"><%- productSpecificationsJson %></script>
     <script src="/js/inventory.js?v=<%= assetVersion %>"></script>
   </body>

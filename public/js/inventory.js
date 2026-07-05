@@ -13,6 +13,7 @@ function readJsonScript(id) {
 const state = {
   entries: readJsonScript('inventory-data'),
   bundles: readJsonScript('bundle-data'),
+  types: readJsonScript('type-data'),
   productSpecifications: readJsonScript('product-specification-data'),
   search: '',
   activeEntry: null,
@@ -28,6 +29,9 @@ const inventoryError = document.getElementById('inventory-form-error');
 const bundleIdInput = document.getElementById('bundle-id');
 const bundleNameInput = document.getElementById('bundle-name');
 const bundleOptions = document.getElementById('bundle-options');
+const typeIdInput = document.getElementById('type-id');
+const typeNameInput = document.getElementById('type-name');
+const typeOptions = document.getElementById('type-options');
 const productSpecificationIdInput = document.getElementById('product-specification-id');
 const productSpecificationInput = document.getElementById('product-specification');
 const productSpecificationOptions = document.getElementById('product-specification-options');
@@ -60,6 +64,7 @@ function getFilteredEntries() {
 
   return state.entries.filter((entry) => [
     entry.bundle_name,
+    entry.type_name,
     entry.code_number,
     entry.product_specification,
     entry.size_inches,
@@ -73,6 +78,7 @@ function renderInventory() {
   tableBody.innerHTML = entries.map((entry) => `
     <tr class="hover:bg-zinc-100">
       <td class="border border-zinc-300 px-3 py-2 text-sm">${escapeHtml(entry.bundle_name)}</td>
+      <td class="border border-zinc-300 px-3 py-2 text-sm">${escapeHtml(entry.type_name)}</td>
       <td class="border border-zinc-300 px-3 py-2 text-sm ${codeClass(entry.code_number)}">${escapeHtml(entry.code_number)}</td>
       <td class="border border-zinc-300 px-3 py-2 text-sm">${escapeHtml(entry.product_specification)}</td>
       <td class="border border-zinc-300 px-3 py-2 text-sm whitespace-nowrap">${escapeHtml(entry.size_inches)}</td>
@@ -128,8 +134,10 @@ function noMatch(text) {
 function hideComboboxes() {
   state.openCombobox = null;
   bundleOptions.classList.add('hidden');
+  typeOptions.classList.add('hidden');
   productSpecificationOptions.classList.add('hidden');
   bundleNameInput.setAttribute('aria-expanded', 'false');
+  typeNameInput.setAttribute('aria-expanded', 'false');
   productSpecificationInput.setAttribute('aria-expanded', 'false');
 }
 
@@ -140,14 +148,35 @@ function showBundleOptions() {
     .slice(0, 12);
 
   bundleOptions.innerHTML = matches.length
-    ? matches.map((bundle) => optionButton(bundle.bundle_name, bundle.price, 'bundle', bundle.id)).join('')
+    ? matches.map((bundle) => optionButton(bundle.bundle_name, '', 'bundle', bundle.id)).join('')
     : noMatch('No matching bundle. Save to create it.');
 
+  typeOptions.classList.add('hidden');
+  typeNameInput.setAttribute('aria-expanded', 'false');
   productSpecificationOptions.classList.add('hidden');
   productSpecificationInput.setAttribute('aria-expanded', 'false');
   bundleOptions.classList.remove('hidden');
   bundleNameInput.setAttribute('aria-expanded', 'true');
   state.openCombobox = 'bundle';
+}
+
+function showTypeOptions() {
+  const query = typeNameInput.value.trim().toLowerCase();
+  const matches = state.types
+    .filter((type) => !query || type.type_name.toLowerCase().includes(query))
+    .slice(0, 12);
+
+  typeOptions.innerHTML = matches.length
+    ? matches.map((type) => optionButton(type.type_name, type.price, 'type', type.id)).join('')
+    : noMatch('No matching type. Create it on Manage Lists first.');
+
+  bundleOptions.classList.add('hidden');
+  bundleNameInput.setAttribute('aria-expanded', 'false');
+  productSpecificationOptions.classList.add('hidden');
+  productSpecificationInput.setAttribute('aria-expanded', 'false');
+  typeOptions.classList.remove('hidden');
+  typeNameInput.setAttribute('aria-expanded', 'true');
+  state.openCombobox = 'type';
 }
 
 function showProductSpecificationOptions() {
@@ -162,6 +191,8 @@ function showProductSpecificationOptions() {
 
   bundleOptions.classList.add('hidden');
   bundleNameInput.setAttribute('aria-expanded', 'false');
+  typeOptions.classList.add('hidden');
+  typeNameInput.setAttribute('aria-expanded', 'false');
   productSpecificationOptions.classList.remove('hidden');
   productSpecificationInput.setAttribute('aria-expanded', 'true');
   state.openCombobox = 'product-specification';
@@ -175,7 +206,18 @@ function selectBundle(id) {
 
   bundleIdInput.value = bundle.id;
   bundleNameInput.value = bundle.bundle_name;
-  priceInput.value = bundle.price;
+  hideComboboxes();
+}
+
+function selectType(id) {
+  const type = state.types.find((item) => item.id === id);
+  if (!type) {
+    return;
+  }
+
+  typeIdInput.value = type.id;
+  typeNameInput.value = type.type_name;
+  priceInput.value = type.price;
   hideComboboxes();
 }
 
@@ -193,8 +235,7 @@ function selectProductSpecification(id) {
 function upsertBundleOption(entry) {
   const bundle = {
     id: entry.bundle_id,
-    bundle_name: entry.bundle_name,
-    price: entry.price
+    bundle_name: entry.bundle_name
   };
   const index = state.bundles.findIndex((item) => item.id === bundle.id);
 
@@ -209,6 +250,27 @@ function upsertBundleOption(entry) {
   }
 
   state.bundles.sort((a, b) => a.bundle_name.localeCompare(b.bundle_name));
+}
+
+function upsertTypeOption(entry) {
+  const type = {
+    id: entry.type_id,
+    type_name: entry.type_name,
+    price: entry.price
+  };
+  const index = state.types.findIndex((item) => item.id === type.id);
+
+  if (!type.id) {
+    return;
+  }
+
+  if (index >= 0) {
+    state.types[index] = type;
+  } else {
+    state.types.push(type);
+  }
+
+  state.types.sort((a, b) => a.type_name.localeCompare(b.type_name));
 }
 
 function upsertProductSpecificationOption(entry) {
@@ -235,6 +297,8 @@ function setFormValues(entry) {
   document.getElementById('inventory-id').value = entry?.id || '';
   bundleIdInput.value = entry?.bundle_id || '';
   bundleNameInput.value = entry?.bundle_name || '';
+  typeIdInput.value = entry?.type_id || '';
+  typeNameInput.value = entry?.type_name || '';
   document.getElementById('code-number').value = entry?.code_number || '';
   productSpecificationIdInput.value = entry?.product_specification_id || '';
   productSpecificationInput.value = entry?.product_specification || '';
@@ -247,12 +311,13 @@ function getFormPayload() {
   return {
     bundle_id: bundleIdInput.value,
     bundle_name: bundleNameInput.value,
+    type_id: typeIdInput.value,
+    type_name: typeNameInput.value,
     code_number: document.getElementById('code-number').value,
     product_specification_id: productSpecificationIdInput.value,
     product_specification: productSpecificationInput.value,
     size_inches: document.getElementById('size-inches').value,
-    length_inches: document.getElementById('length-inches').value,
-    price: priceInput.value
+    length_inches: document.getElementById('length-inches').value
   };
 }
 
@@ -297,6 +362,7 @@ function upsertEntry(entry) {
   }
 
   upsertBundleOption(entry);
+  upsertTypeOption(entry);
   upsertProductSpecificationOption(entry);
 }
 
@@ -306,6 +372,7 @@ function openNewEntry() {
   state.activeEntry = null;
   inventoryForm.reset();
   bundleIdInput.value = '';
+  typeIdInput.value = '';
   productSpecificationIdInput.value = '';
   document.getElementById('inventory-modal-title').textContent = 'New Inventory Entry';
   document.getElementById('save-inventory-button').textContent = 'Save Entry';
@@ -381,6 +448,13 @@ bundleNameInput.addEventListener('input', () => {
   showBundleOptions();
 });
 
+typeNameInput.addEventListener('focus', showTypeOptions);
+typeNameInput.addEventListener('input', () => {
+  typeIdInput.value = '';
+  priceInput.value = '';
+  showTypeOptions();
+});
+
 productSpecificationInput.addEventListener('focus', showProductSpecificationOptions);
 productSpecificationInput.addEventListener('input', () => {
   productSpecificationIdInput.value = '';
@@ -391,6 +465,13 @@ bundleOptions.addEventListener('click', (event) => {
   const option = event.target.closest('[data-option-id]');
   if (option?.dataset.comboboxType === 'bundle') {
     selectBundle(option.dataset.optionId);
+  }
+});
+
+typeOptions.addEventListener('click', (event) => {
+  const option = event.target.closest('[data-option-id]');
+  if (option?.dataset.comboboxType === 'type') {
+    selectType(option.dataset.optionId);
   }
 });
 
@@ -405,6 +486,8 @@ document.addEventListener('click', (event) => {
   if (
     !bundleNameInput.contains(event.target)
     && !bundleOptions.contains(event.target)
+    && !typeNameInput.contains(event.target)
+    && !typeOptions.contains(event.target)
     && !productSpecificationInput.contains(event.target)
     && !productSpecificationOptions.contains(event.target)
   ) {
