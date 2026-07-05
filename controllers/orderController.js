@@ -21,9 +21,9 @@ async function nextMetadata(req, res) {
 
 async function createOrder(req, res) {
   try {
-    const order = await Order.createOrder(req.body, req.user.id);
+    const { order, customer } = await Order.createOrder(req.body, req.user.id);
     const inventoryItems = await Order.listAvailableInventoryItems();
-    res.status(201).json({ order, inventoryItems });
+    res.status(201).json({ order, customer, inventoryItems });
   } catch (error) {
     sendError(res, error);
   }
@@ -70,9 +70,9 @@ async function labelImage(req, res) {
 
 async function updateOrder(req, res) {
   try {
-    const order = await Order.updateOrder(req.params.id, req.body);
+    const { order, customer } = await Order.updateOrder(req.params.id, req.body);
     const inventoryItems = await Order.listAvailableInventoryItems();
-    res.json({ order, inventoryItems });
+    res.json({ order, customer, inventoryItems });
   } catch (error) {
     sendError(res, error);
   }

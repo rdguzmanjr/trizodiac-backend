@@ -195,6 +195,61 @@ async function listCustomers() {
   return data || [];
 }
 
+async function getCustomerById(id) {
+  if (!id) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from('customers')
+    .select('id, name, contact, shipping_address')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+async function findMatchingCustomer(customerData) {
+  const { data, error } = await supabase
+    .from('customers')
+    .select('id, name, contact, shipping_address')
+    .ilike('name', customerData.name)
+    .eq('contact', customerData.contact)
+    .eq('shipping_address', customerData.shipping_address)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+async function resolveOrderCustomer(orderData) {
+  const customerData = {
+    name: orderData.receiver,
+    contact: orderData.contact,
+    shipping_address: orderData.address
+  };
+
+  const selectedCustomer = await getCustomerById(orderData.customer_id);
+  if (selectedCustomer) {
+    return selectedCustomer;
+  }
+
+  const matchingCustomer = await findMatchingCustomer(customerData);
+  if (matchingCustomer) {
+    return matchingCustomer;
+  }
+
+  return createCustomer(customerData);
+}
+
 async function listAvailableInventoryItems() {
   const { data, error } = await supabase
     .from('inventory_entries')
@@ -253,6 +308,9 @@ async function getNextMetadata() {
 
 async function createOrder(payload, userId) {
   const orderData = validatePayload(payload, { requireInventoryItems: true });
+  const customer = await resolveOrderCustomer(orderData);
+  orderData.customer_id = customer.id;
+
   const { data, error } = await supabase
     .rpc('create_order', {
       p_order_date: getTodayIsoDate(),
@@ -273,7 +331,10 @@ async function createOrder(payload, userId) {
     throw error;
   }
 
-  return decorateOrder(data);
+  return {
+    order: decorateOrder(data),
+    customer
+  };
 }
 
 async function updateInventoryStatuses(ids, status, currentStatus) {
@@ -299,6 +360,8 @@ async function updateInventoryStatuses(ids, status, currentStatus) {
 async function updateOrder(id, payload) {
   const existingOrder = await getOrder(id);
   const orderData = validatePayload(payload, { requireInventoryItems: true });
+  const customer = await resolveOrderCustomer(orderData);
+  orderData.customer_id = customer.id;
   const previousIds = normalizeUuidArray(existingOrder.inventory_item_ids);
   const nextIds = orderData.inventory_item_ids;
   const removedIds = previousIds.filter((itemId) => !nextIds.includes(itemId));
@@ -335,7 +398,10 @@ async function updateOrder(id, payload) {
     throw error;
   }
 
-  return decorateOrder(data);
+  return {
+    order: decorateOrder(data),
+    customer
+  };
 }
 
 async function deleteOrder(id) {

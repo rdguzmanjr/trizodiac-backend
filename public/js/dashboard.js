@@ -90,6 +90,21 @@ function selectedItemText() {
   return state.selectedInventoryItems.map(itemLabel).join('\n');
 }
 
+function upsertCustomer(customer) {
+  if (!customer?.id) {
+    return;
+  }
+
+  const index = state.customers.findIndex((item) => item.id === customer.id);
+  if (index >= 0) {
+    state.customers[index] = customer;
+  } else {
+    state.customers.push(customer);
+  }
+
+  state.customers.sort((a, b) => a.name.localeCompare(b.name));
+}
+
 function syncItemsField() {
   const text = selectedItemText();
   itemsInput.value = text;
@@ -208,7 +223,7 @@ function showCustomerOptions() {
         <span class="mt-1 block truncate text-xs text-zinc-400">${escapeHtml(customer.contact)} · ${escapeHtml(customer.shipping_address)}</span>
       </button>
     `).join('')
-    : '<div class="px-3 py-2 text-sm text-zinc-400">No matching customer. Add it from Manage Customers.</div>';
+    : '<div class="px-3 py-2 text-sm text-zinc-400">No matching customer. Save to create it.</div>';
 
   customerOptions.classList.remove('hidden');
   receiverInput.setAttribute('aria-expanded', 'true');
@@ -336,6 +351,7 @@ async function submitOrder(event) {
       ? await fetchJson(`/orders/${id}`, { method: 'PUT', body: JSON.stringify(payload) })
       : await fetchJson('/orders', { method: 'POST', body: JSON.stringify(payload) });
 
+    upsertCustomer(data.customer);
     state.inventoryItems = data.inventoryItems || state.inventoryItems;
     upsertOrder(data.order);
     closeModal(orderModal);
