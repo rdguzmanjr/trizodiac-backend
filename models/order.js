@@ -132,6 +132,16 @@ function decorateInventoryItem(row) {
   };
 }
 
+function formatInventoryItemsForOrder(items) {
+  return (items || [])
+    .map((item) => [
+      item.code_number,
+      item.product_specification
+    ].filter(Boolean).join(' | '))
+    .filter(Boolean)
+    .join(' , ');
+}
+
 function inventoryItemSelect() {
   return `
     id,
@@ -309,7 +319,13 @@ async function getNextMetadata() {
 async function createOrder(payload, userId) {
   const orderData = validatePayload(payload, { requireInventoryItems: true });
   const customer = await resolveOrderCustomer(orderData);
+  const selectedItems = await listInventoryItemsByIds(orderData.inventory_item_ids);
+  if (selectedItems.length !== orderData.inventory_item_ids.length) {
+    throw createHttpError(400, 'One or more selected inventory items were not found.');
+  }
+
   orderData.customer_id = customer.id;
+  orderData.items = formatInventoryItemsForOrder(selectedItems);
 
   const { data, error } = await supabase
     .rpc('create_order', {
@@ -361,7 +377,13 @@ async function updateOrder(id, payload) {
   const existingOrder = await getOrder(id);
   const orderData = validatePayload(payload, { requireInventoryItems: true });
   const customer = await resolveOrderCustomer(orderData);
+  const selectedItems = await listInventoryItemsByIds(orderData.inventory_item_ids);
+  if (selectedItems.length !== orderData.inventory_item_ids.length) {
+    throw createHttpError(400, 'One or more selected inventory items were not found.');
+  }
+
   orderData.customer_id = customer.id;
+  orderData.items = formatInventoryItemsForOrder(selectedItems);
   const previousIds = normalizeUuidArray(existingOrder.inventory_item_ids);
   const nextIds = orderData.inventory_item_ids;
   const removedIds = previousIds.filter((itemId) => !nextIds.includes(itemId));
@@ -478,6 +500,7 @@ module.exports = {
   listCustomers,
   listAvailableInventoryItems,
   listInventoryItemsByIds,
+  formatInventoryItemsForOrder,
   getNextMetadata,
   createOrder,
   updateOrder,

@@ -50,13 +50,17 @@ async function orderInventoryItems(req, res) {
 async function labelImage(req, res) {
   try {
     const order = await Order.getOrder(req.params.id);
-    const image = await renderOrderLabelPng(order);
+    const inventoryItems = await Order.listInventoryItemsByIds(order.inventory_item_ids);
+    const labelOrder = inventoryItems.length
+      ? { ...order, items: Order.formatInventoryItemsForOrder(inventoryItems) }
+      : order;
+    const image = await renderOrderLabelPng(labelOrder);
     const disposition = req.query.download === '1' ? 'attachment' : 'inline';
 
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Content-Length', image.length);
     res.setHeader('Cache-Control', 'private, no-store');
-    res.setHeader('Content-Disposition', `${disposition}; filename="${order.order_number}.png"`);
+    res.setHeader('Content-Disposition', `${disposition}; filename="${labelOrder.order_number}.png"`);
     res.send(image);
   } catch (error) {
     console.error('Label image render failed', {

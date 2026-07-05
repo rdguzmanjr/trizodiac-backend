@@ -86,8 +86,15 @@ function itemLabel(item) {
   ].filter(Boolean).join(' | ');
 }
 
+function orderItemLabel(item) {
+  return [
+    item.code_number,
+    item.product_specification
+  ].filter(Boolean).join(' | ');
+}
+
 function selectedItemText() {
-  return state.selectedInventoryItems.map(itemLabel).join('\n');
+  return state.selectedInventoryItems.map(orderItemLabel).join(' , ');
 }
 
 function upsertCustomer(customer) {
