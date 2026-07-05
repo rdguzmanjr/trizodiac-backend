@@ -69,6 +69,7 @@ function getFilteredEntries() {
     entry.product_specification,
     entry.size_inches,
     entry.length_inches,
+    entry.status,
     entry.price
   ].some((value) => String(value || '').toLowerCase().includes(query)));
 }
@@ -84,6 +85,9 @@ function renderInventory() {
       <td class="border border-zinc-300 px-3 py-2 text-sm whitespace-nowrap">${escapeHtml(entry.size_inches)}</td>
       <td class="border border-zinc-300 px-3 py-2 text-sm whitespace-nowrap">${escapeHtml(entry.length_inches)}</td>
       <td class="border border-zinc-300 px-3 py-2 text-sm whitespace-nowrap">${escapeHtml(entry.price)}</td>
+      <td class="border border-zinc-300 px-3 py-2 text-sm whitespace-nowrap">
+        <span class="${entry.status === 'Sold' ? 'text-red-700' : 'text-emerald-700'} font-semibold">${escapeHtml(entry.status || 'Available')}</span>
+      </td>
       <td class="border border-zinc-300 px-3 py-2 text-right text-sm">
         <div class="flex min-w-max justify-end gap-2">
           <button class="rounded border border-zinc-300 px-2 py-1 text-xs font-semibold text-zinc-800 hover:bg-zinc-200" data-action="edit" data-id="${entry.id}" type="button">Edit</button>

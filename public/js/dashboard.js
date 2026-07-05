@@ -1,17 +1,21 @@
-function readInitialOrders() {
-  const dataElement = document.getElementById('orders-data');
+function readJsonScript(id) {
+  const dataElement = document.getElementById(id);
   const rawData = dataElement?.textContent || dataElement?.content?.textContent || '[]';
 
   try {
     return JSON.parse(rawData);
   } catch (error) {
-    console.error('Unable to load initial orders.', error);
+    console.error(`Unable to load ${id}.`, error);
     return [];
   }
 }
 
 const state = {
-  orders: readInitialOrders(),
+  orders: readJsonScript('orders-data'),
+  customers: readJsonScript('customers-data'),
+  inventoryItems: readJsonScript('inventory-items-data'),
+  selectedInventoryItems: [],
+  draftSelectedItemIds: new Set(),
   page: 1,
   pageSize: 10,
   search: '',
@@ -28,6 +32,7 @@ const paginationSummary = document.getElementById('pagination-summary');
 const prevPageButton = document.getElementById('prev-page');
 const nextPageButton = document.getElementById('next-page');
 const orderModal = document.getElementById('order-modal');
+const itemsModal = document.getElementById('items-modal');
 const labelModal = document.getElementById('label-modal');
 const orderForm = document.getElementById('order-form');
 const orderError = document.getElementById('order-form-error');
@@ -35,10 +40,75 @@ const labelStage = document.getElementById('label-preview-stage');
 const labelScroll = document.getElementById('label-preview-scroll');
 const labelImage = document.getElementById('label-preview-image');
 const downloadButton = document.getElementById('download-label-button');
+const customerIdInput = document.getElementById('customer-id');
+const receiverInput = document.getElementById('receiver');
+const contactInput = document.getElementById('contact');
+const addressInput = document.getElementById('address');
+const customerOptions = document.getElementById('customer-options');
+const itemsInput = document.getElementById('items');
+const selectedItemsList = document.getElementById('selected-items-list');
+const itemSearch = document.getElementById('item-search');
+const inventoryItemList = document.getElementById('inventory-item-list');
+const emptyInventoryItems = document.getElementById('empty-inventory-items');
 
 function money(value) {
   const number = Number(value || 0);
   return number.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function uniqueById(items) {
+  const map = new Map();
+  items.forEach((item) => {
+    if (item?.id) {
+      map.set(item.id, item);
+    }
+  });
+  return Array.from(map.values());
+}
+
+function itemLabel(item) {
+  return [
+    item.code_number,
+    item.bundle_name,
+    item.type_name,
+    item.product_specification,
+    item.size_inches,
+    item.length_inches
+  ].filter(Boolean).join(' | ');
+}
+
+function selectedItemText() {
+  return state.selectedInventoryItems.map(itemLabel).join('\n');
+}
+
+function syncItemsField() {
+  const text = selectedItemText();
+  itemsInput.value = text;
+
+  if (!state.selectedInventoryItems.length) {
+    selectedItemsList.innerHTML = '<span class="text-zinc-500">No items selected.</span>';
+    return;
+  }
+
+  selectedItemsList.innerHTML = `
+    <ul class="space-y-2">
+      ${state.selectedInventoryItems.map((item) => `
+        <li class="rounded border border-white/10 bg-zinc-900/70 px-3 py-2">
+          <div class="text-sm font-semibold text-white">${escapeHtml(item.code_number)}</div>
+          <div class="mt-1 text-xs text-zinc-400">${escapeHtml(itemLabel(item))}</div>
+        </li>
+      `).join('')}
+    </ul>
+  `;
 }
 
 function getFilteredOrders() {
@@ -47,6 +117,7 @@ function getFilteredOrders() {
     const matchesSearch = !query || [
       order.order_number,
       order.receiver,
+      order.contact,
       order.payment,
       order.total_display,
       order.status
@@ -92,15 +163,6 @@ function renderOrders() {
   nextPageButton.disabled = state.page >= totalPages;
 }
 
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
 function openModal(modal) {
   modal.classList.remove('hidden');
   modal.classList.add('flex');
@@ -108,6 +170,10 @@ function openModal(modal) {
 }
 
 function closeModal(modal) {
+  if (modal === orderModal) {
+    hideCustomerOptions();
+  }
+
   modal.classList.add('opacity-0');
   window.setTimeout(() => {
     modal.classList.add('hidden');
@@ -120,13 +186,56 @@ function setFormError(message) {
   orderError.classList.toggle('hidden', !message);
 }
 
+function hideCustomerOptions() {
+  customerOptions.classList.add('hidden');
+  receiverInput.setAttribute('aria-expanded', 'false');
+}
+
+function showCustomerOptions() {
+  const query = receiverInput.value.trim().toLowerCase();
+  const matches = state.customers
+    .filter((customer) => !query || [
+      customer.name,
+      customer.contact,
+      customer.shipping_address
+    ].some((value) => String(value || '').toLowerCase().includes(query)))
+    .slice(0, 12);
+
+  customerOptions.innerHTML = matches.length
+    ? matches.map((customer) => `
+      <button class="w-full rounded px-3 py-2 text-left text-sm text-zinc-100 hover:bg-white/10 focus:bg-white/10 focus:outline-none" type="button" data-customer-id="${escapeHtml(customer.id)}">
+        <span class="block font-semibold">${escapeHtml(customer.name)}</span>
+        <span class="mt-1 block truncate text-xs text-zinc-400">${escapeHtml(customer.contact)} · ${escapeHtml(customer.shipping_address)}</span>
+      </button>
+    `).join('')
+    : '<div class="px-3 py-2 text-sm text-zinc-400">No matching customer. Add it from Manage Customers.</div>';
+
+  customerOptions.classList.remove('hidden');
+  receiverInput.setAttribute('aria-expanded', 'true');
+}
+
+function selectCustomer(id) {
+  const customer = state.customers.find((item) => item.id === id);
+  if (!customer) {
+    return;
+  }
+
+  customerIdInput.value = customer.id;
+  receiverInput.value = customer.name;
+  contactInput.value = customer.contact;
+  addressInput.value = customer.shipping_address;
+  hideCustomerOptions();
+}
+
 function setFormValues(order) {
   document.getElementById('order-id').value = order?.id || '';
   document.getElementById('order-number').value = order?.order_number || '';
   document.getElementById('order-date-display').value = order?.order_date_display || '';
-  document.getElementById('receiver').value = order?.receiver || '';
-  document.getElementById('address').value = order?.address || '';
-  document.getElementById('items').value = order?.items || '';
+  customerIdInput.value = order?.customer_id || '';
+  receiverInput.value = order?.receiver || '';
+  contactInput.value = order?.contact || '';
+  addressInput.value = order?.address || '';
+  itemsInput.value = order?.items || '';
   document.getElementById('payment').value = order?.payment || '';
   document.getElementById('total').value = order?.total ?? '';
   document.getElementById('notes').value = order?.notes || '';
@@ -160,31 +269,53 @@ async function fetchJson(url, options = {}) {
   return response.json();
 }
 
+async function refreshAvailableInventoryItems() {
+  const data = await fetchJson('/orders/inventory/available', { method: 'GET' });
+  state.inventoryItems = data.inventoryItems || [];
+}
+
 async function openNewOrder() {
   setFormError('');
   orderForm.reset();
   state.activeOrder = null;
+  state.selectedInventoryItems = [];
+  syncItemsField();
+  customerIdInput.value = '';
   document.getElementById('order-modal-title').textContent = 'New Order';
   document.getElementById('generate-label-button').textContent = 'Generate Label';
-  const metadata = await fetchJson('/orders/next', { method: 'GET' });
+  const [metadata] = await Promise.all([
+    fetchJson('/orders/next', { method: 'GET' }),
+    refreshAvailableInventoryItems()
+  ]);
   setFormValues(metadata);
+  syncItemsField();
   openModal(orderModal);
 }
 
-function openEditOrder(order) {
+async function openEditOrder(order) {
   setFormError('');
   state.activeOrder = order;
   document.getElementById('order-modal-title').textContent = 'Edit Order';
   document.getElementById('generate-label-button').textContent = 'Update Label';
   setFormValues(order);
+
+  const [orderItems] = await Promise.all([
+    fetchJson(`/orders/${order.id}/inventory-items`, { method: 'GET' }),
+    refreshAvailableInventoryItems()
+  ]);
+  state.selectedInventoryItems = orderItems.inventoryItems || [];
+  syncItemsField();
   openModal(orderModal);
 }
 
 function getFormPayload() {
   return {
-    receiver: document.getElementById('receiver').value,
-    address: document.getElementById('address').value,
-    items: document.getElementById('items').value,
+    customer_id: customerIdInput.value,
+    receiver: receiverInput.value,
+    contact: contactInput.value,
+    address: addressInput.value,
+    items: itemsInput.value,
+    inventory_item_ids: state.selectedInventoryItems.map((item) => item.id),
     payment: document.getElementById('payment').value,
     total: document.getElementById('total').value,
     notes: document.getElementById('notes').value
@@ -198,12 +329,14 @@ async function submitOrder(event) {
   button.disabled = true;
 
   try {
+    syncItemsField();
     const payload = getFormPayload();
     const id = document.getElementById('order-id').value;
     const data = id
       ? await fetchJson(`/orders/${id}`, { method: 'PUT', body: JSON.stringify(payload) })
       : await fetchJson('/orders', { method: 'POST', body: JSON.stringify(payload) });
 
+    state.inventoryItems = data.inventoryItems || state.inventoryItems;
     upsertOrder(data.order);
     closeModal(orderModal);
     renderOrders();
@@ -226,6 +359,67 @@ function upsertOrder(order) {
 
 function findOrder(id) {
   return state.orders.find((order) => order.id === id);
+}
+
+function selectableInventoryItems() {
+  return uniqueById([...state.selectedInventoryItems, ...state.inventoryItems]);
+}
+
+function renderInventoryItemPicker() {
+  const query = itemSearch.value.trim().toLowerCase();
+  const selectedIds = state.draftSelectedItemIds;
+  const items = selectableInventoryItems().filter((item) => {
+    if (!query) {
+      return true;
+    }
+
+    return [
+      item.code_number,
+      item.bundle_name,
+      item.type_name,
+      item.product_specification,
+      item.size_inches,
+      item.length_inches,
+      item.price
+    ].some((value) => String(value || '').toLowerCase().includes(query));
+  });
+
+  inventoryItemList.innerHTML = items.map((item) => {
+    const checked = selectedIds.has(item.id) ? 'checked' : '';
+    const isSelectedCurrent = state.selectedInventoryItems.some((selected) => selected.id === item.id);
+    const statusText = isSelectedCurrent ? 'Selected on this order' : 'Available';
+    return `
+      <label class="block rounded-md border border-white/10 bg-white/[0.04] p-4 text-sm transition hover:border-emerald-300/50">
+        <div class="flex items-start gap-3">
+          <input class="mt-1 h-4 w-4 accent-emerald-400" type="checkbox" value="${escapeHtml(item.id)}" ${checked} data-inventory-item />
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-semibold text-white">${escapeHtml(item.code_number)}</span>
+              <span class="rounded-full border border-emerald-300/30 px-2 py-0.5 text-xs font-semibold text-emerald-200">${escapeHtml(statusText)}</span>
+            </div>
+            <p class="mt-2 text-zinc-300">${escapeHtml(itemLabel(item))}</p>
+            <p class="mt-1 text-xs text-zinc-500">${escapeHtml(item.price)}</p>
+          </div>
+        </div>
+      </label>
+    `;
+  }).join('');
+
+  emptyInventoryItems.classList.toggle('hidden', items.length > 0);
+}
+
+function openItemsModal() {
+  state.draftSelectedItemIds = new Set(state.selectedInventoryItems.map((item) => item.id));
+  itemSearch.value = '';
+  renderInventoryItemPicker();
+  openModal(itemsModal);
+}
+
+function confirmItemSelection() {
+  const allItems = selectableInventoryItems();
+  state.selectedInventoryItems = allItems.filter((item) => state.draftSelectedItemIds.has(item.id));
+  syncItemsField();
+  closeModal(itemsModal);
 }
 
 function labelImageUrl(order, options = {}) {
@@ -286,13 +480,54 @@ async function deleteOrder(id) {
     return;
   }
 
-  await fetchJson(`/orders/${id}`, { method: 'DELETE' });
+  const data = await fetchJson(`/orders/${id}`, { method: 'DELETE' });
+  state.inventoryItems = data.inventoryItems || state.inventoryItems;
   state.orders = state.orders.filter((item) => item.id !== id);
   renderOrders();
 }
 
 document.getElementById('new-order-button').addEventListener('click', () => {
   openNewOrder().catch((error) => window.alert(error.message));
+});
+
+receiverInput.addEventListener('focus', showCustomerOptions);
+receiverInput.addEventListener('input', () => {
+  customerIdInput.value = '';
+  showCustomerOptions();
+});
+
+customerOptions.addEventListener('click', (event) => {
+  const option = event.target.closest('[data-customer-id]');
+  if (option) {
+    selectCustomer(option.dataset.customerId);
+  }
+});
+
+document.getElementById('select-items-button').addEventListener('click', openItemsModal);
+document.getElementById('confirm-items-button').addEventListener('click', confirmItemSelection);
+itemSearch.addEventListener('input', renderInventoryItemPicker);
+inventoryItemList.addEventListener('change', (event) => {
+  if (!event.target.matches('[data-inventory-item]')) {
+    return;
+  }
+
+  if (event.target.checked) {
+    state.draftSelectedItemIds.add(event.target.value);
+  } else {
+    state.draftSelectedItemIds.delete(event.target.value);
+  }
+});
+
+document.addEventListener('click', (event) => {
+  if (!receiverInput.contains(event.target) && !customerOptions.contains(event.target)) {
+    hideCustomerOptions();
+  }
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    hideCustomerOptions();
+  }
 });
 
 document.getElementById('order-search').addEventListener('input', (event) => {
@@ -341,7 +576,7 @@ tableBody.addEventListener('click', (event) => {
   } else if (button.dataset.action === 'download') {
     downloadCurrentLabel(order);
   } else if (button.dataset.action === 'edit') {
-    openEditOrder(order);
+    openEditOrder(order).catch((error) => window.alert(error.message));
   } else if (button.dataset.action === 'delete') {
     deleteOrder(button.dataset.id).catch((error) => window.alert(error.message));
   }
@@ -364,4 +599,5 @@ document.querySelectorAll('[data-zoom]').forEach((button) => {
 orderForm.addEventListener('submit', submitOrder);
 downloadButton.addEventListener('click', () => downloadCurrentLabel());
 
+syncItemsField();
 renderOrders();

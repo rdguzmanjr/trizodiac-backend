@@ -31,6 +31,7 @@ function decorateEntry(row) {
     size_inches: row.size_inches,
     length_inches: row.length_inches,
     price: type.price || row.price,
+    status: row.status || 'Available',
     created_by: row.created_by,
     created_at: row.created_at,
     updated_at: row.updated_at
@@ -306,7 +307,8 @@ async function resolveEntryData(payload) {
     product_specification: spec.product_specification,
     size_inches: values.size_inches,
     length_inches: values.length_inches,
-    price: type.price
+    price: type.price,
+    status: 'Available'
   };
 }
 
@@ -323,6 +325,7 @@ function entrySelect() {
     size_inches,
     length_inches,
     price,
+    status,
     created_by,
     created_at,
     updated_at,
