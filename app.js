@@ -14,6 +14,7 @@ require('./config/passport');
 
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
+const inventoryRoutes = require('./routes/inventory');
 const orderRoutes = require('./routes/orders');
 const { showDashboard } = require('./controllers/dashboardController');
 const { ensureAuthenticated, ensureAdmin } = require('./middleware/auth');
@@ -153,6 +154,7 @@ app.get('/settings', ensureAuthenticated, ensureAdmin, (req, res, next) => {
 
 app.use('/auth', authRoutes);
 app.use('/admin', ensureAuthenticated, ensureAdmin, verifyCsrf, adminRoutes);
+app.use('/inventory', ensureAuthenticated, ensureAdmin, verifyCsrf, inventoryRoutes);
 app.use('/orders', ensureAuthenticated, ensureAdmin, verifyCsrf, orderRoutes);
 
 app.use((req, res) => {
