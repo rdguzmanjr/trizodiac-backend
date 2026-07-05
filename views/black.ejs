@@ -3,8 +3,37 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title></title>
+    <meta name="color-scheme" content="dark light" />
+    <title>Access Pending | Trizodiac</title>
     <link rel="stylesheet" href="/css/styles.css?v=<%= assetVersion %>" />
   </head>
-  <body class="m-0 min-h-screen bg-black"></body>
+  <body>
+    <main class="flex min-h-screen items-center justify-center px-6 py-12">
+      <section class="w-full max-w-md rounded-lg border border-white/10 bg-zinc-900/85 p-8 text-center shadow-2xl shadow-black/40 backdrop-blur">
+        <p class="text-sm font-medium uppercase tracking-[0.22em] text-emerald-300">Trizodiac</p>
+        <h1 class="mt-4 text-3xl font-semibold tracking-normal text-white">Access Pending</h1>
+        <p class="mt-3 text-sm leading-6 text-zinc-400">
+          Your Google account is signed in, but an administrator needs to approve dashboard access.
+        </p>
+
+        <div class="mt-6 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-left">
+          <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Signed in as</p>
+          <p class="mt-1 truncate text-sm font-medium text-zinc-200"><%= currentUser.email %></p>
+        </div>
+
+        <a
+          class="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-md bg-emerald-400 px-5 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:ring-offset-2 focus:ring-offset-zinc-950"
+          href="mailto:jr.dguzman@gmail.com?subject=Trizodiac%20Dashboard%20Access%20Request&body=Hi%20Admin%2C%0A%0APlease%20grant%20dashboard%20access%20for%20<%= encodeURIComponent(currentUser.email) %>.%0A%0AThank%20you."
+        >
+          Request Access
+        </a>
+
+        <form class="mt-3" method="post" action="/auth/logout">
+          <button class="w-full rounded-md border border-white/10 px-5 py-3 text-sm font-medium text-zinc-300 transition hover:bg-white/10 hover:text-white" type="submit">
+            Sign out
+          </button>
+        </form>
+      </section>
+    </main>
+  </body>
 </html>
