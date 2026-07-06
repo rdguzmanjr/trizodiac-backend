@@ -56,6 +56,11 @@ function money(value) {
   return number.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function priceValue(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -97,6 +102,22 @@ function selectedItemText() {
   return state.selectedInventoryItems.map(orderItemLabel).join(' , ');
 }
 
+function getItemPriceGiven(item) {
+  if (item.price_given !== null && item.price_given !== undefined && item.price_given !== '') {
+    return item.price_given;
+  }
+
+  return item.price || '';
+}
+
+function calculateOrderTotal() {
+  return state.selectedInventoryItems.reduce((sum, item) => sum + priceValue(getItemPriceGiven(item)), 0);
+}
+
+function updateOrderTotal() {
+  document.getElementById('total').value = calculateOrderTotal().toFixed(2);
+}
+
 function upsertCustomer(customer) {
   if (!customer?.id) {
     return;
@@ -118,19 +139,27 @@ function syncItemsField() {
 
   if (!state.selectedInventoryItems.length) {
     selectedItemsList.innerHTML = '<span class="text-zinc-500">No items selected.</span>';
+    updateOrderTotal();
     return;
   }
 
   selectedItemsList.innerHTML = `
     <ul class="space-y-2">
       ${state.selectedInventoryItems.map((item) => `
-        <li class="rounded border border-white/10 bg-zinc-900/70 px-3 py-2">
-          <div class="text-sm font-semibold text-white">${escapeHtml(item.code_number)}</div>
-          <div class="mt-1 text-xs text-zinc-400">${escapeHtml(itemLabel(item))}</div>
+        <li class="grid gap-3 rounded border border-white/10 bg-zinc-900/70 px-3 py-3 md:grid-cols-[1fr_180px] md:items-center">
+          <div class="min-w-0">
+            <div class="text-sm font-semibold text-white">${escapeHtml(item.code_number)}</div>
+            <div class="mt-1 text-xs text-zinc-400">${escapeHtml(itemLabel(item))}</div>
+          </div>
+          <label class="block">
+            <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-400">Price Given</span>
+            <input class="min-h-10 w-full rounded-md border border-white/10 bg-white/[0.04] px-3 text-sm text-white outline-none focus:border-emerald-300" type="number" min="0" step="0.01" value="${escapeHtml(getItemPriceGiven(item))}" data-price-given-item="${escapeHtml(item.id)}" required />
+          </label>
         </li>
       `).join('')}
     </ul>
   `;
+  updateOrderTotal();
 }
 
 function getFilteredOrders() {
@@ -330,6 +359,10 @@ async function openEditOrder(order) {
   openModal(orderModal);
 }
 
+function getInventoryItemPrices() {
+  return Object.fromEntries(state.selectedInventoryItems.map((item) => [item.id, String(getItemPriceGiven(item))]));
+}
+
 function getFormPayload() {
   return {
     customer_id: customerIdInput.value,
@@ -338,8 +371,9 @@ function getFormPayload() {
     address: addressInput.value,
     items: itemsInput.value,
     inventory_item_ids: state.selectedInventoryItems.map((item) => item.id),
+    inventory_item_prices: getInventoryItemPrices(),
     payment: document.getElementById('payment').value,
-    total: document.getElementById('total').value,
+    total: calculateOrderTotal().toFixed(2),
     notes: document.getElementById('notes').value
   };
 }
@@ -440,7 +474,13 @@ function openItemsModal() {
 
 function confirmItemSelection() {
   const allItems = selectableInventoryItems();
-  state.selectedInventoryItems = allItems.filter((item) => state.draftSelectedItemIds.has(item.id));
+  const previousItems = new Map(state.selectedInventoryItems.map((item) => [item.id, item]));
+  state.selectedInventoryItems = allItems
+    .filter((item) => state.draftSelectedItemIds.has(item.id))
+    .map((item) => ({
+      ...item,
+      price_given: getItemPriceGiven(previousItems.get(item.id) || item)
+    }));
   syncItemsField();
   closeModal(itemsModal);
 }
@@ -528,6 +568,17 @@ customerOptions.addEventListener('click', (event) => {
 
 document.getElementById('select-items-button').addEventListener('click', openItemsModal);
 document.getElementById('confirm-items-button').addEventListener('click', confirmItemSelection);
+selectedItemsList.addEventListener('input', (event) => {
+  if (!event.target.matches('[data-price-given-item]')) {
+    return;
+  }
+
+  const item = state.selectedInventoryItems.find((selected) => selected.id === event.target.dataset.priceGivenItem);
+  if (item) {
+    item.price_given = event.target.value;
+    updateOrderTotal();
+  }
+});
 itemSearch.addEventListener('input', renderInventoryItemPicker);
 inventoryItemList.addEventListener('change', (event) => {
   if (!event.target.matches('[data-inventory-item]')) {

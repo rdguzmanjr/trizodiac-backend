@@ -55,9 +55,31 @@ function normalizeUuidArray(value) {
   return [...new Set(value.map((item) => normalizeText(item)).filter(Boolean))];
 }
 
+function normalizeItemPriceMap(selectedInventoryIds, value) {
+  const rawMap = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  const priceMap = {};
+
+  selectedInventoryIds.forEach((itemId) => {
+    const rawPrice = normalizeText(rawMap[itemId]);
+    const price = Number(rawPrice);
+
+    if (!rawPrice || !Number.isFinite(price) || price < 0) {
+      throw createHttpError(400, 'Enter a valid Price Given for every selected item.');
+    }
+
+    priceMap[itemId] = price;
+  });
+
+  return priceMap;
+}
+
+function sumItemPrices(priceMap) {
+  return Object.values(priceMap).reduce((sum, price) => sum + Number(price || 0), 0);
+}
+
 function validatePayload(payload, options = {}) {
   const selectedInventoryIds = normalizeUuidArray(payload.inventory_item_ids);
-  const required = ['receiver', 'contact', 'address', 'items', 'payment', 'total'];
+  const required = ['receiver', 'contact', 'address', 'payment'];
   const missing = required.filter((field) => !normalizeText(payload[field]));
 
   if (missing.length) {
@@ -68,10 +90,8 @@ function validatePayload(payload, options = {}) {
     throw createHttpError(400, 'Select at least one available inventory item.');
   }
 
-  const total = Number(payload.total);
-  if (!Number.isFinite(total) || total < 0) {
-    throw createHttpError(400, 'Total must be a valid non-negative number.');
-  }
+  const inventoryItemPrices = normalizeItemPriceMap(selectedInventoryIds, payload.inventory_item_prices);
+  const total = sumItemPrices(inventoryItemPrices);
 
   return {
     customer_id: normalizeText(payload.customer_id) || null,
@@ -80,6 +100,7 @@ function validatePayload(payload, options = {}) {
     address: normalizeText(payload.address),
     items: normalizeText(payload.items),
     inventory_item_ids: selectedInventoryIds,
+    inventory_item_prices: inventoryItemPrices,
     payment: normalizeText(payload.payment),
     total,
     notes: normalizeText(payload.notes)
@@ -128,7 +149,10 @@ function decorateInventoryItem(row) {
     size_inches: row.size_inches,
     length_inches: row.length_inches,
     price: type.price || row.price,
-    status: row.status || 'Available'
+    status: row.status || 'Available',
+    shipped_to: row.shipped_to || '',
+    price_given: row.price_given !== null && row.price_given !== undefined ? Number(row.price_given) : null,
+    price_given_display: row.price_given !== null && row.price_given !== undefined ? Number(row.price_given).toFixed(2) : ''
   };
 }
 
@@ -153,6 +177,8 @@ function inventoryItemSelect() {
     length_inches,
     price,
     status,
+    shipped_to,
+    price_given,
     bundle:inventory_bundles(id, bundle_name),
     type:inventory_types(id, type_name, price),
     spec:product_specifications(id, product_specification)
@@ -335,6 +361,7 @@ async function createOrder(payload, userId) {
       p_address: orderData.address,
       p_items: orderData.items,
       p_inventory_item_ids: orderData.inventory_item_ids,
+      p_inventory_item_prices: orderData.inventory_item_prices,
       p_payment: orderData.payment,
       p_total: orderData.total,
       p_notes: orderData.notes,
@@ -353,13 +380,13 @@ async function createOrder(payload, userId) {
   };
 }
 
-async function updateInventoryStatuses(ids, status, currentStatus) {
+async function updateInventoryStatuses(ids, status, currentStatus, extraUpdates = {}) {
   const uniqueIds = normalizeUuidArray(ids);
   if (!uniqueIds.length) {
     return 0;
   }
 
-  let query = supabase.from('inventory_entries').update({ status }).in('id', uniqueIds);
+  let query = supabase.from('inventory_entries').update({ status, ...extraUpdates }).in('id', uniqueIds);
   if (currentStatus) {
     query = query.eq('status', currentStatus);
   }
@@ -373,10 +400,51 @@ async function updateInventoryStatuses(ids, status, currentStatus) {
   return (data || []).length;
 }
 
+async function updateInventorySaleDetails(ids, receiver, priceMap, currentStatus) {
+  const uniqueIds = normalizeUuidArray(ids);
+  if (!uniqueIds.length) {
+    return 0;
+  }
+
+  let updatedCount = 0;
+
+  for (const itemId of uniqueIds) {
+    let query = supabase
+      .from('inventory_entries')
+      .update({
+        status: 'Sold',
+        shipped_to: receiver,
+        price_given: priceMap[itemId]
+      })
+      .eq('id', itemId);
+
+    if (currentStatus) {
+      query = query.eq('status', currentStatus);
+    }
+
+    const { data, error } = await query.select('id');
+
+    if (error) {
+      throw error;
+    }
+
+    updatedCount += (data || []).length;
+  }
+
+  return updatedCount;
+}
+
+function itemPriceMapFromItems(items) {
+  return Object.fromEntries((items || []).map((item) => [item.id, item.price_given ?? 0]));
+}
+
 async function updateOrder(id, payload) {
   const existingOrder = await getOrder(id);
   const orderData = validatePayload(payload, { requireInventoryItems: true });
   const customer = await resolveOrderCustomer(orderData);
+  const previousIds = normalizeUuidArray(existingOrder.inventory_item_ids);
+  const previousItems = await listInventoryItemsByIds(previousIds);
+  const previousPriceMap = itemPriceMapFromItems(previousItems);
   const selectedItems = await listInventoryItemsByIds(orderData.inventory_item_ids);
   if (selectedItems.length !== orderData.inventory_item_ids.length) {
     throw createHttpError(400, 'One or more selected inventory items were not found.');
@@ -384,38 +452,46 @@ async function updateOrder(id, payload) {
 
   orderData.customer_id = customer.id;
   orderData.items = formatInventoryItemsForOrder(selectedItems);
-  const previousIds = normalizeUuidArray(existingOrder.inventory_item_ids);
   const nextIds = orderData.inventory_item_ids;
   const removedIds = previousIds.filter((itemId) => !nextIds.includes(itemId));
   const addedIds = nextIds.filter((itemId) => !previousIds.includes(itemId));
+  const retainedIds = nextIds.filter((itemId) => previousIds.includes(itemId));
 
   if (removedIds.length) {
-    await updateInventoryStatuses(removedIds, 'Available', 'Sold');
+    await updateInventoryStatuses(removedIds, 'Available', 'Sold', { shipped_to: null, price_given: null });
   }
 
   if (addedIds.length) {
-    const soldCount = await updateInventoryStatuses(addedIds, 'Sold', 'Available');
+    const soldCount = await updateInventorySaleDetails(addedIds, orderData.receiver, orderData.inventory_item_prices, 'Available');
     if (soldCount !== addedIds.length) {
       if (removedIds.length) {
-        await updateInventoryStatuses(removedIds, 'Sold', 'Available');
+        await updateInventorySaleDetails(removedIds, existingOrder.receiver, previousPriceMap, 'Available');
       }
       throw createHttpError(409, 'One or more selected inventory items are no longer available.');
     }
   }
 
+  if (retainedIds.length) {
+    await updateInventorySaleDetails(retainedIds, orderData.receiver, orderData.inventory_item_prices, 'Sold');
+  }
+
+  const { inventory_item_prices: _inventoryItemPrices, ...orderFields } = orderData;
   const { data, error } = await supabase
     .from('orders')
-    .update(orderData)
+    .update(orderFields)
     .eq('id', id)
     .select('*')
     .single();
 
   if (error) {
     if (addedIds.length) {
-      await updateInventoryStatuses(addedIds, 'Available', 'Sold');
+      await updateInventoryStatuses(addedIds, 'Available', 'Sold', { shipped_to: null, price_given: null });
     }
     if (removedIds.length) {
-      await updateInventoryStatuses(removedIds, 'Sold', 'Available');
+      await updateInventorySaleDetails(removedIds, existingOrder.receiver, previousPriceMap, 'Available');
+    }
+    if (retainedIds.length) {
+      await updateInventorySaleDetails(retainedIds, existingOrder.receiver, previousPriceMap, 'Sold');
     }
     throw error;
   }
@@ -428,15 +504,17 @@ async function updateOrder(id, payload) {
 
 async function deleteOrder(id) {
   const order = await getOrder(id);
+  const orderItems = await listInventoryItemsByIds(order.inventory_item_ids);
+  const previousPriceMap = itemPriceMapFromItems(orderItems);
   if (order.inventory_item_ids.length) {
-    await updateInventoryStatuses(order.inventory_item_ids, 'Available', 'Sold');
+    await updateInventoryStatuses(order.inventory_item_ids, 'Available', 'Sold', { shipped_to: null, price_given: null });
   }
 
   const { error } = await supabase.from('orders').delete().eq('id', id);
 
   if (error) {
     if (order.inventory_item_ids.length) {
-      await updateInventoryStatuses(order.inventory_item_ids, 'Sold', 'Available');
+      await updateInventorySaleDetails(order.inventory_item_ids, order.receiver, previousPriceMap, 'Available');
     }
     throw error;
   }
@@ -481,6 +559,28 @@ async function updateCustomer(id, payload) {
 
   if (orderUpdateError) {
     throw orderUpdateError;
+  }
+
+  const { data: affectedOrders, error: affectedOrdersError } = await supabase
+    .from('orders')
+    .select('inventory_item_ids')
+    .eq('customer_id', data.id);
+
+  if (affectedOrdersError) {
+    throw affectedOrdersError;
+  }
+
+  const inventoryItemIds = normalizeUuidArray((affectedOrders || []).flatMap((order) => order.inventory_item_ids || []));
+  if (inventoryItemIds.length) {
+    const { error: inventoryUpdateError } = await supabase
+      .from('inventory_entries')
+      .update({ shipped_to: data.name })
+      .in('id', inventoryItemIds)
+      .eq('status', 'Sold');
+
+    if (inventoryUpdateError) {
+      throw inventoryUpdateError;
+    }
   }
 
   return data;

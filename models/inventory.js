@@ -32,6 +32,9 @@ function decorateEntry(row) {
     length_inches: row.length_inches,
     price: type.price || row.price,
     status: row.status || 'Available',
+    shipped_to: row.status === 'Sold' ? row.shipped_to : '',
+    price_given: row.status === 'Sold' && row.price_given !== null ? Number(row.price_given) : null,
+    price_given_display: row.status === 'Sold' && row.price_given !== null ? Number(row.price_given).toFixed(2) : '',
     created_by: row.created_by,
     created_at: row.created_at,
     updated_at: row.updated_at
@@ -308,8 +311,7 @@ async function resolveEntryData(payload) {
     product_specification: spec.product_specification,
     size_inches: values.size_inches,
     length_inches: values.length_inches,
-    price: type.price,
-    status: 'Available'
+    price: type.price
   };
 }
 
@@ -327,6 +329,8 @@ function entrySelect() {
     length_inches,
     price,
     status,
+    shipped_to,
+    price_given,
     created_by,
     created_at,
     updated_at,
@@ -368,7 +372,7 @@ async function createEntry(payload, userId) {
   const entryData = await resolveEntryData(payload);
   const { data, error } = await supabase
     .from('inventory_entries')
-    .insert({ ...entryData, created_by: userId })
+    .insert({ ...entryData, status: 'Available', shipped_to: null, price_given: null, created_by: userId })
     .select('id')
     .single();
 
