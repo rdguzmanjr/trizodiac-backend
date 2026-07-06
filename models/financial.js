@@ -44,8 +44,8 @@ function validatePayload(payload) {
   const description = normalizeText(payload.description);
   const recordDate = normalizeText(payload.record_date);
 
-  if (!priceText || !Number.isFinite(price) || price < 0) {
-    throw createHttpError(400, 'Price must be a valid non-negative number.');
+  if (!priceText || !Number.isFinite(price)) {
+    throw createHttpError(400, 'Price must be a valid number.');
   }
 
   if (!description) {

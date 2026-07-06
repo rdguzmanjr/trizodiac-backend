@@ -1,6 +1,6 @@
 create table if not exists public.financial_records (
   id uuid primary key default gen_random_uuid(),
-  price numeric(12, 2) not null check (price >= 0),
+  price numeric(12, 2) not null,
   description text not null,
   record_date date not null,
   added_by uuid references public.users(id) on delete set null,
